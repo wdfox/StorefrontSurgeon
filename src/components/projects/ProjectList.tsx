@@ -21,16 +21,16 @@ export function ProjectList({ projects }: ProjectListProps) {
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="eyebrow">Seeded project</div>
+              <div className="eyebrow">Sample storefront</div>
               <h2 className="mt-2 text-2xl font-bold">{project.name}</h2>
             </div>
-            <div className="pill">{project.revisionCount} revisions</div>
+            <div className="pill">{project.revisionCount} saved versions</div>
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">
             {project.description}
           </p>
           <div className="mt-5 text-sm font-semibold text-[var(--accent-strong)]">
-            Open workspace
+            Open page
           </div>
         </Link>
       ))}

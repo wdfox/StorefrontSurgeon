@@ -2,7 +2,11 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { executeRevision } from "@/lib/revisions/orchestrator";
+import {
+  createPendingRevision,
+  executeRevision,
+  getRevisionSnapshot,
+} from "@/lib/revisions/orchestrator";
 import { getOptionalSession } from "@/lib/session";
 
 const requestSchema = z.object({
@@ -44,7 +48,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
-  const result = await executeRevision({
+  const revision = await createPendingRevision({
     projectId: project.id,
     currentSource: project.activeSource,
     request: {
@@ -54,5 +58,18 @@ export async function POST(request: Request, context: RouteContext) {
     },
   });
 
-  return NextResponse.json(result);
+  void executeRevision({
+    revisionId: revision.id,
+    projectId: project.id,
+    currentSource: project.activeSource,
+    request: {
+      projectId: project.id,
+      prompt: body.data.prompt,
+      presetKey: body.data.presetKey,
+    },
+  });
+
+  const snapshot = await getRevisionSnapshot(revision.id);
+
+  return NextResponse.json(snapshot);
 }

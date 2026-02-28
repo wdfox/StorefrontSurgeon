@@ -23,7 +23,7 @@ export function LoginForm() {
     });
 
     if (result?.error) {
-      setError("That email/password combination did not match the seeded demo user.");
+      setError("That email and password combination didn’t match the demo account.");
       setIsSubmitting(false);
       return;
     }
@@ -43,12 +43,12 @@ export function LoginForm() {
       className="panel panel-strong w-full max-w-md rounded-[2rem] p-8"
     >
       <div className="space-y-2">
-        <div className="eyebrow">Foundation login</div>
+        <div className="eyebrow">Demo access</div>
         <h1 className="display text-4xl leading-tight">
-          Sign in to operate the storefront agent.
+          Sign in to review and request page updates.
         </h1>
         <p className="text-sm leading-7 text-[var(--muted)]">
-          Demo credentials: <strong>demo@storefrontsurgeon.dev</strong> /{" "}
+          Use the demo account: <strong>demo@storefrontsurgeon.dev</strong> /{" "}
           <strong>demo1234</strong>
         </p>
       </div>
@@ -83,7 +83,7 @@ export function LoginForm() {
       ) : null}
 
       <button className="button-primary mt-6 w-full" type="submit" disabled={isBusy}>
-        {isBusy ? "Signing in..." : "Sign in"}
+        {isBusy ? "Opening workspace..." : "Open workspace"}
       </button>
     </form>
   );

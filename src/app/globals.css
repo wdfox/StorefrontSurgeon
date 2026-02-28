@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6efe4;
-  --background-strong: #efe1cf;
+  --background: #f4ecde;
+  --background-strong: #ead9c2;
   --foreground: #211d18;
-  --panel: rgba(255, 250, 242, 0.8);
-  --panel-strong: rgba(255, 248, 236, 0.94);
-  --accent: #c65f2f;
-  --accent-strong: #8d2f17;
-  --muted: #71665a;
+  --panel: rgba(255, 250, 242, 0.78);
+  --panel-strong: rgba(255, 248, 238, 0.94);
+  --accent: #bf5a2c;
+  --accent-strong: #7b2915;
+  --muted: #6e6358;
   --success: #1f7a52;
   --danger: #a23c32;
-  --ring: rgba(198, 95, 47, 0.35);
+  --ring: rgba(191, 90, 44, 0.28);
 }
 
 @theme inline {
@@ -33,9 +33,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   background-image:
-    radial-gradient(circle at top left, rgba(255, 246, 228, 0.95), transparent 34%),
-    radial-gradient(circle at top right, rgba(198, 95, 47, 0.18), transparent 28%),
-    linear-gradient(180deg, #fbf5ea 0%, #f3e6d5 100%);
+    radial-gradient(circle at top left, rgba(255, 247, 232, 0.94), transparent 28%),
+    radial-gradient(circle at 80% 10%, rgba(191, 90, 44, 0.18), transparent 24%),
+    radial-gradient(circle at 50% 120%, rgba(122, 61, 28, 0.08), transparent 32%),
+    linear-gradient(180deg, #faf3e7 0%, #f1e4d2 54%, #eee0cf 100%);
   font-family: var(--font-sans), sans-serif;
   min-height: 100vh;
 }
@@ -59,7 +60,7 @@ textarea {
   background: var(--panel);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(108, 89, 73, 0.14);
-  box-shadow: 0 18px 60px rgba(67, 45, 20, 0.08);
+  box-shadow: 0 22px 70px rgba(67, 45, 20, 0.08);
 }
 
 .panel-strong {
@@ -113,6 +114,12 @@ textarea {
   font-weight: 700;
   padding: 0.85rem 1.2rem;
   box-shadow: 0 18px 30px rgba(141, 47, 23, 0.22);
+  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 34px rgba(141, 47, 23, 0.24);
 }
 
 .button-primary:disabled {
@@ -127,6 +134,13 @@ textarea {
   color: var(--foreground);
   font-weight: 600;
   padding: 0.85rem 1.2rem;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: rgba(255, 249, 242, 0.96);
+  border-color: rgba(108, 89, 73, 0.22);
+  transform: translateY(-1px);
 }
 
 .status-success {

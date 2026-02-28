@@ -1,0 +1,17 @@
+<svg width="960" height="1120" viewBox="0 0 960 1120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="1120" rx="64" fill="#F3E8DA"/>
+  <rect x="96" y="96" width="768" height="928" rx="56" fill="#F8F1E7"/>
+  <rect x="170" y="198" width="620" height="548" rx="52" fill="#E7CCB0"/>
+  <path d="M170 278C300 232.667 507.2 213.6 790 278" stroke="#F4E4D2" stroke-width="12" stroke-linecap="round"/>
+  <path d="M170 382C300 336.667 507.2 317.6 790 382" stroke="#F4E4D2" stroke-width="12" stroke-linecap="round"/>
+  <path d="M170 486C300 440.667 507.2 421.6 790 486" stroke="#F4E4D2" stroke-width="12" stroke-linecap="round"/>
+  <path d="M170 590C300 544.667 507.2 525.6 790 590" stroke="#F4E4D2" stroke-width="12" stroke-linecap="round"/>
+  <path d="M170 694C300 648.667 507.2 629.6 790 694" stroke="#F4E4D2" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="688" cy="334" r="54" fill="#F9F4EE"/>
+  <circle cx="688" cy="334" r="16" fill="#D5B597"/>
+  <path d="M688 280V388" stroke="#D5B597" stroke-width="5" stroke-linecap="round"/>
+  <path d="M634 334H742" stroke="#D5B597" stroke-width="5" stroke-linecap="round"/>
+  <rect x="178" y="804" width="604" height="136" rx="36" fill="#EEDACA"/>
+  <text x="226" y="864" fill="#6A4E39" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="5">GARMENT-WASHED FLAX LINEN</text>
+  <text x="226" y="914" fill="#8A6B4E" font-family="Arial, sans-serif" font-size="26">Soft texture, airy drape, easy care.</text>
+</svg>

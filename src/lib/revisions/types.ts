@@ -1,4 +1,11 @@
 export type SurgeryPresetKey = "sticky-buy-bar";
+export type RevisionStatus = "pending" | "applied" | "blocked" | "failed";
+export type RevisionRunStage =
+  | "generating"
+  | "validating"
+  | "testing"
+  | "applying"
+  | "complete";
 
 export type GenerateSurgeryRequest = {
   projectId: string;
@@ -21,9 +28,24 @@ export type TestRunResult = {
   output: string;
 };
 
+export type RevisionSnapshot = {
+  revisionId: string;
+  status: RevisionStatus;
+  runStage: RevisionRunStage;
+  prompt: string;
+  summary: string[];
+  patchText: string;
+  blockedReason?: string;
+  testStatus?: string | null;
+  testOutput?: string | null;
+  sourceAfter?: string;
+  createdAt: string;
+};
+
 export type RevisionExecutionResult = {
   revisionId: string;
-  status: "applied" | "blocked" | "failed";
+  status: Exclude<RevisionStatus, "pending">;
+  runStage: RevisionRunStage;
   summary: string[];
   patchText: string;
   blockedReason?: string;

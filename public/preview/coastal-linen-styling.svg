@@ -1,0 +1,21 @@
+<svg width="960" height="1120" viewBox="0 0 960 1120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="1120" rx="64" fill="#F6EBDD"/>
+  <rect x="96" y="96" width="768" height="928" rx="56" fill="#FBF6F0"/>
+  <rect x="208" y="176" width="544" height="728" rx="52" fill="#E8D0B7"/>
+  <rect x="272" y="246" width="416" height="534" rx="42" fill="#F6F0E8"/>
+  <path d="M314 318C314 280.444 344.444 250 382 250H578C615.556 250 646 280.444 646 318V360L696 403V746C696 770.301 676.301 790 652 790H308C283.699 790 264 770.301 264 746V403L314 360V318Z" fill="#F3E2D0"/>
+  <path d="M314 360L264 403H318L366 361L314 360Z" fill="#E7CCB0"/>
+  <path d="M646 360L696 403H642L594 361L646 360Z" fill="#E7CCB0"/>
+  <rect x="130" y="760" width="170" height="212" rx="70" fill="#D9B490"/>
+  <rect x="660" y="760" width="170" height="212" rx="70" fill="#D9B490"/>
+  <path d="M438 312H522" stroke="#D7BA9E" stroke-width="8" stroke-linecap="round"/>
+  <path d="M480 312V768" stroke="#E7CCB0" stroke-width="5"/>
+  <circle cx="480" cy="416" r="8" fill="#CCAE93"/>
+  <circle cx="480" cy="492" r="8" fill="#CCAE93"/>
+  <circle cx="480" cy="568" r="8" fill="#CCAE93"/>
+  <circle cx="480" cy="644" r="8" fill="#CCAE93"/>
+  <rect x="690" y="176" width="108" height="212" rx="28" fill="#C99C63"/>
+  <path d="M744 176V128" stroke="#A67A47" stroke-width="12" stroke-linecap="round"/>
+  <rect x="164" y="182" width="108" height="108" rx="54" fill="#E9C56B"/>
+  <text x="160" y="1036" fill="#7B5A43" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="6">STYLED FOR LONG WEEKENDS</text>
+</svg>
