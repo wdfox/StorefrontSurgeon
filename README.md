@@ -23,6 +23,9 @@ The repo currently includes:
 - generated-source validation, local diff generation, and test gating
 - a preview-first product-page workspace with an inline request bar
 - backend-driven run stages and a live progress drawer
+- deterministic patch validation/application before promotion
+- in-app restore to baseline or a prior saved version
+- advanced stale-diff replay for conflict demos
 - plain-English blocked-error messaging with optional technical detail
 - a full happy-path UI for `/login`, `/projects`, and `/projects/[projectId]`
 - a blocked unsafe-change path for forbidden prompts like `cart` or `checkout`
@@ -53,6 +56,7 @@ The project planning/spec document is in [SPEC.md](/Users/wdfox/Documents/Docume
    - calls the Codex adapter
    - validates the returned `sourceAfter`
    - computes a unified diff locally
+   - validates and reapplies that diff deterministically
    - runs deterministic tests
    - promotes `activeSource` only if tests pass
    - persists the final revision status
@@ -111,6 +115,12 @@ The validator also enforces an approved preview-class allowlist. That constraint
 
 - `/api/projects/[projectId]/revisions/[revisionId]`
   - revision polling endpoint for backend-driven run status
+
+- `/api/projects/[projectId]/restore`
+  - restores the baseline or a previously approved version
+
+- `/api/projects/[projectId]/revisions/[revisionId]/replay`
+  - advanced demo endpoint for replaying a saved diff against the current source
 
 ## Data Model
 
@@ -184,6 +194,7 @@ npm run dev
 npm run lint
 npm test
 npm run build
+npm run demo:reset
 npm run prisma:generate
 npm run db:migrate
 npm run db:seed
@@ -255,6 +266,11 @@ These are the repo-specific details that matter most when changing the demo:
 4. The simplified workspace flow is:
    preview -> describe change -> watch progress -> review checks/history -> open technical diff only if needed.
 5. Re-seeding the DB is the quickest way to get back to a clean first-visit demo state because it clears saved revisions for the seeded project.
+6. For live demos, the preferred recovery flow is the in-app `Restore original` action, with `npm run demo:reset` as the operator fallback before you start the session.
+
+## Demo Runbook
+
+The interview/demo sequence is documented in [DEMO.md](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/DEMO.md).
 
 ### Prisma migration note
 

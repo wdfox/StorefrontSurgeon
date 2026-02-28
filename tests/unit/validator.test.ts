@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { EDITABLE_PREVIEW_PATH } from "@/lib/revisions/constants";
-import { validateGeneratedEdit } from "@/lib/revisions/validator";
+import {
+  validateGeneratedEdit,
+  validateRequestedScope,
+} from "@/lib/revisions/validator";
 
 const baselineSource = `export default function ProductPreview() {
   return (
@@ -27,6 +30,26 @@ const updatedSource = `export default function ProductPreview() {
 `;
 
 describe("validateGeneratedEdit", () => {
+  it("rejects requests that ask to modify cart, checkout, pricing, or subscription behavior", () => {
+    expect(
+      validateRequestedScope(
+        "Also refactor the cart logic to add subscriptions and update the checkout flow.",
+      ),
+    ).toEqual({
+      ok: false,
+      reason:
+        "Request attempted to change cart, checkout, pricing, or subscription behavior outside the approved product-page surface.",
+    });
+  });
+
+  it("allows product-page requests that mention checkout only as reassurance copy", () => {
+    expect(
+      validateRequestedScope(
+        "Add trust badges under the CTA with shipping, returns, and secure checkout reassurance.",
+      ),
+    ).toEqual({ ok: true });
+  });
+
   it("accepts a bounded update to the editable preview file", () => {
     expect(
       validateGeneratedEdit({
@@ -77,7 +100,7 @@ export default function ProductPreview() {
     });
   });
 
-  it("rejects unsupported utility classes outside the approved preview allowlist", () => {
+  it("rejects subscription purchase UI even if it stays self-contained", () => {
     expect(
       validateGeneratedEdit({
         currentSource: baselineSource,
@@ -86,10 +109,10 @@ export default function ProductPreview() {
           filesTouched: [EDITABLE_PREVIEW_PATH],
           sourceAfter: `export default function ProductPreview() {
   return (
-    <section className="rounded-2xl bg-[#123456] text-white">
-      <button className="rounded-full">Buy now</button>
-      <button>See size guide</button>
-      <p>Free returns and low stock.</p>
+    <section>
+      <div>One-time purchase</div>
+      <div>Subscribe & Save 10%</div>
+      <button>Buy now</button>
     </section>
   );
 }
@@ -99,7 +122,30 @@ export default function ProductPreview() {
     ).toEqual({
       ok: false,
       reason:
-        "Editable preview used unsupported utility classes: bg-[#123456]. Reuse only the approved preview class tokens.",
+        "Editable preview may not introduce subscription or recurring purchase behavior.",
     });
+  });
+
+  it("accepts broader styling changes when the edit stays bounded to the preview component", () => {
+    expect(
+      validateGeneratedEdit({
+        currentSource: baselineSource,
+        patchResponse: {
+          summary: ["Updated preview"],
+          filesTouched: [EDITABLE_PREVIEW_PATH],
+          sourceAfter: `export default function ProductPreview() {
+  return (
+    <section className="rounded-2xl bg-[#123456] text-white transition-all duration-200">
+      <div className="gallery-frame gallery-label">Spring campaign</div>
+      <button className={"rounded-full bg-[#201812] text-white"}>Buy now</button>
+      <button>See size guide</button>
+      <p>Free returns and low stock.</p>
+    </section>
+  );
+}
+`,
+        },
+      }),
+    ).toEqual({ ok: true });
   });
 });

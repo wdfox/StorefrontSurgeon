@@ -1,7 +1,7 @@
 import { diffLines } from "diff";
 
 import { EDITABLE_PREVIEW_PATH } from "@/lib/revisions/constants";
-import { APPROVED_PREVIEW_CLASS_SET } from "@/lib/revisions/previewClasses";
+import { MAX_PATCH_CHANGED_LINES } from "@/lib/revisions/patcher";
 import type {
   CodexPatchResponse,
   PatchValidationResult,
@@ -11,22 +11,29 @@ const FORBIDDEN_IMPORT_PATTERN =
   /(from\s+["'][^"']*(cart|checkout|pricing)[^"']*["'])|(require\([^)]*(cart|checkout|pricing)[^)]*\))/i;
 const ANY_IMPORT_PATTERN = /^\s*import\s+/m;
 const FORBIDDEN_GLOBAL_PATTERN = /\b(fetch|process\.|window\.|document\.)/;
-const CLASS_NAME_PATTERN = /className\s*=\s*"([^"]+)"/g;
-const BRACED_CLASS_NAME_PATTERN = /className\s*=\s*{/;
+const FORBIDDEN_REQUEST_PATTERN =
+  /\b(refactor|rewrite|modify|change|update|implement|wire|connect|integrate|extend|support|alter)\b[\s\S]{0,48}\b(cart|checkout|pricing(?:\s+(?:engine|logic))?|cart logic|checkout flow)\b/i;
+const FORBIDDEN_REQUEST_REVERSE_PATTERN =
+  /\b(cart|checkout|pricing(?:\s+(?:engine|logic))?|cart logic|checkout flow)\b[\s\S]{0,24}\b(logic|flow|behavior|integration|state|engine|backend)\b/i;
+const FORBIDDEN_SUBSCRIPTION_REQUEST_PATTERN =
+  /\b(subscriptions?|subscribe(?:\s*&\s*save)?|recurring(?:\s+purchase)?|membership)\b/i;
+const FORBIDDEN_SUBSCRIPTION_OUTPUT_PATTERN =
+  /\b(subscribe(?:\s*&\s*save)?|subscription|recurring|one-time purchase|one-time delivery)\b/i;
 
-function collectClassTokens(source: string) {
-  const tokens = new Set<string>();
-  let match: RegExpExecArray | null;
-
-  while ((match = CLASS_NAME_PATTERN.exec(source))) {
-    match[1]
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .forEach((token) => tokens.add(token));
+export function validateRequestedScope(prompt: string): PatchValidationResult {
+  if (
+    FORBIDDEN_SUBSCRIPTION_REQUEST_PATTERN.test(prompt) ||
+    FORBIDDEN_REQUEST_PATTERN.test(prompt) ||
+    FORBIDDEN_REQUEST_REVERSE_PATTERN.test(prompt)
+  ) {
+    return {
+      ok: false,
+      reason:
+        "Request attempted to change cart, checkout, pricing, or subscription behavior outside the approved product-page surface.",
+    };
   }
 
-  return [...tokens];
+  return { ok: true };
 }
 
 export function validateGeneratedEdit({
@@ -75,11 +82,11 @@ export function validateGeneratedEdit({
     };
   }
 
-  if (BRACED_CLASS_NAME_PATTERN.test(patchResponse.sourceAfter)) {
+  if (FORBIDDEN_SUBSCRIPTION_OUTPUT_PATTERN.test(patchResponse.sourceAfter)) {
     return {
       ok: false,
       reason:
-        "Editable preview must use literal className strings from the approved preview allowlist.",
+        "Editable preview may not introduce subscription or recurring purchase behavior.",
     };
   }
 
@@ -87,19 +94,6 @@ export function validateGeneratedEdit({
     return {
       ok: false,
       reason: "Editable preview must stay a pure component without hooks.",
-    };
-  }
-
-  const unsupportedClassTokens = collectClassTokens(patchResponse.sourceAfter).filter(
-    (token) => !APPROVED_PREVIEW_CLASS_SET.has(token),
-  );
-
-  if (unsupportedClassTokens.length > 0) {
-    return {
-      ok: false,
-      reason: `Editable preview used unsupported utility classes: ${unsupportedClassTokens
-        .slice(0, 8)
-        .join(", ")}. Reuse only the approved preview class tokens.`,
     };
   }
 
@@ -114,7 +108,7 @@ export function validateGeneratedEdit({
     0,
   );
 
-  if (changedLines > 220) {
+  if (changedLines > MAX_PATCH_CHANGED_LINES) {
     return { ok: false, reason: "Patch exceeded the maximum allowed size." };
   }
 

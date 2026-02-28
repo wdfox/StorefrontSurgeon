@@ -1,5 +1,4 @@
 import { EDITABLE_PREVIEW_PATH } from "@/lib/revisions/constants";
-import { APPROVED_PREVIEW_CLASS_GUIDANCE } from "@/lib/revisions/previewClasses";
 import type { GenerateSurgeryRequest } from "@/lib/revisions/types";
 
 export function buildCodexInstructions() {
@@ -8,12 +7,9 @@ export function buildCodexInstructions() {
     `Only edit ${EDITABLE_PREVIEW_PATH}.`,
     "Return the full updated file contents, not a diff.",
     "Keep the component self-contained with no imports, hooks, async work, side effects, or references to cart or checkout modules.",
-    "You may change copy, colors, buttons, trust badges, layout, and promo treatments within that one preview component.",
-    "Make the change obvious in a desktop-width preview. Do not hide all meaningful additions behind md:hidden or mobile-only wrappers.",
-    "Add at least one visible desktop change such as a trust row, urgency banner, updated CTA copy, or color treatment. A mobile sticky treatment can be additive, not the only change.",
-    "Use only literal className strings.",
-    `Use only these approved preview class tokens: ${APPROVED_PREVIEW_CLASS_GUIDANCE}`,
-    "Do not invent new Tailwind utility classes, arbitrary color values, or new responsive variants.",
+    "You may make broader visual, content, and layout changes within that one preview component, including new sections, trust badges, urgency treatments, CTA updates, and sticky purchase affordances.",
+    "You may introduce new utility classes, custom CSS class names, scoped style tags, and inline style objects when helpful.",
+    "Make the change obvious in a desktop-width preview. A mobile sticky treatment can be additive, not the only visible change.",
     "Return JSON with summary, sourceAfter, and filesTouched only.",
   ].join(" ");
 }

@@ -12,7 +12,8 @@
     "prisma:generate": "prisma generate",
     "db:migrate": "for migration in prisma/migrations/*/migration.sql; do sqlite3 prisma/dev.db < \"$migration\"; done",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "npm run prisma:generate && npm run db:migrate && npm run db:seed"
+    "db:setup": "npm run prisma:generate && npm run db:migrate && npm run db:seed",
+    "demo:reset": "npm run db:seed"
   },
   "dependencies": {
     "@openai/codex": "^0.106.0",

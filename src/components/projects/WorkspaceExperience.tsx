@@ -11,8 +11,11 @@ import { TestStatusPanel } from "@/components/projects/TestStatusPanel";
 import { getUserFacingBlockedReason } from "@/lib/revisions/userFacing";
 import type {
   RevisionRunStage,
+  RevisionReplayResponse,
   RevisionSnapshot,
   RevisionStatus,
+  RestoreRequest,
+  RestoreResponse,
   SurgeryPresetKey,
 } from "@/lib/revisions/types";
 
@@ -37,12 +40,20 @@ type RevisionTimelineItem = {
   blockedReason: string | null;
   summary: string[];
   createdAtLabel: string;
+  isCurrent: boolean;
+  isLatest: boolean;
+  isOriginal: boolean;
+  canRestore: boolean;
+  canReplay: boolean;
 };
 
 type WorkspaceExperienceProps = {
   projectId: string;
   projectName: string;
   projectDescription: string | null;
+  currentVersionKey: "baseline" | string;
+  hasOriginalVersionActive: boolean;
+  baselineVersionLabel: string;
   latestRun: LatestRun | null;
   displayTestStatus: string | null;
   displayTestOutput: string | null;
@@ -55,6 +66,17 @@ type WorkspaceExperienceProps = {
 type DrawerState = {
   requestPrompt: string;
   error: string | null;
+};
+
+type ActionNotice = {
+  tone: "success" | "warning" | "error";
+  text: string;
+};
+
+type RevisionNotice = {
+  tone: "success" | "warning" | "error";
+  text: string;
+  technical?: string;
 };
 
 type StageCardState = "done" | "current" | "failed" | "blocked" | "waiting";
@@ -264,6 +286,9 @@ export function WorkspaceExperience({
   projectId,
   projectName,
   projectDescription,
+  currentVersionKey,
+  hasOriginalVersionActive,
+  baselineVersionLabel,
   latestRun,
   displayTestStatus,
   displayTestOutput,
@@ -285,6 +310,10 @@ export function WorkspaceExperience({
     requestPrompt: latestRun?.status === "pending" ? latestRun.prompt : "",
     error: null,
   });
+  const [restorePendingKey, setRestorePendingKey] = useState<string | null>(null);
+  const [replayPendingRevisionId, setReplayPendingRevisionId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
+  const [revisionNotices, setRevisionNotices] = useState<Record<string, RevisionNotice>>({});
 
   useEffect(() => {
     if (!liveRun || isTerminalStatus(liveRun.status)) {
@@ -354,6 +383,7 @@ export function WorkspaceExperience({
   async function submitRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextPrompt = prompt.trim();
+    setActionNotice(null);
 
     if (!nextPrompt) {
       setDrawerPinned(true);
@@ -408,6 +438,138 @@ export function WorkspaceExperience({
     }
   }
 
+  async function restoreVersion(
+    restoreRequest: RestoreRequest,
+    successMessage: string,
+  ) {
+    const restoreKey =
+      restoreRequest.target === "baseline" ? "baseline" : restoreRequest.revisionId;
+
+    setActionNotice(null);
+    setRestorePendingKey(restoreKey);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/restore`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(restoreRequest),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | ({ error?: string } & Partial<RestoreResponse>)
+        | null;
+
+      if (!response.ok || !body) {
+        const message = body?.error ?? "We couldn’t restore that version.";
+        setActionNotice({
+          tone: "error",
+          text: message,
+        });
+        return;
+      }
+
+      if (body.status === "failed") {
+        const reason = body.blockedReason ?? body.testOutput ?? "We couldn’t restore that version.";
+        const friendlyReason = getUserFacingBlockedReason(reason);
+
+        setActionNotice({
+          tone: "error",
+          text: friendlyReason?.summary ?? "We couldn’t restore that version.",
+        });
+        return;
+      }
+
+      setActionNotice({
+        tone: "success",
+        text: successMessage,
+      });
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      setActionNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "We couldn’t restore that version.",
+      });
+    } finally {
+      setRestorePendingKey(null);
+    }
+  }
+
+  async function replayRevision(revisionId: string) {
+    setReplayPendingRevisionId(revisionId);
+    setRevisionNotices((current) => {
+      const next = { ...current };
+      delete next[revisionId];
+      return next;
+    });
+
+    try {
+      const response = await fetch(
+        `/api/projects/${projectId}/revisions/${revisionId}/replay`,
+        {
+          method: "POST",
+        },
+      );
+      const body = (await response.json().catch(() => null)) as
+        | ({ error?: string } & Partial<RevisionReplayResponse>)
+        | null;
+
+      if (!response.ok || !body) {
+        const technicalReason = body?.error ?? "We couldn’t replay that saved diff.";
+        const friendlyReason = getUserFacingBlockedReason(technicalReason);
+
+        setRevisionNotices((current) => ({
+          ...current,
+          [revisionId]: {
+            tone: response.status === 409 ? "warning" : "error",
+            text:
+              response.status === 409
+                ? "This saved diff was created for an older page state and can’t be replayed on the current version."
+                : friendlyReason?.summary ?? "We couldn’t replay that saved diff.",
+            technical: technicalReason,
+          },
+        }));
+        return;
+      }
+
+      if (!body.ok) {
+        setRevisionNotices((current) => ({
+          ...current,
+          [revisionId]: {
+            tone: "warning",
+            text: "This saved diff was created for an older page state and can’t be replayed on the current version.",
+            technical: body.error ?? "We couldn’t replay that saved diff.",
+          },
+        }));
+        return;
+      }
+
+      setRevisionNotices((current) => ({
+        ...current,
+        [revisionId]: {
+          tone: "success",
+          text: "This saved diff still applies cleanly to the current page. The active preview was left unchanged.",
+          technical: body.patchText,
+        },
+      }));
+    } catch (error) {
+      setRevisionNotices((current) => ({
+        ...current,
+        [revisionId]: {
+          tone: "error",
+          text: "We couldn’t replay that saved diff.",
+          technical: error instanceof Error ? error.message : undefined,
+        },
+      }));
+    } finally {
+      setReplayPendingRevisionId(null);
+    }
+  }
+
   const displayRun =
     liveRun && latestRun?.id === liveRun.id && latestRun.status !== "pending"
       ? latestRun
@@ -427,7 +589,11 @@ export function WorkspaceExperience({
   const drawerVisible = drawerPinned && Boolean(displayRun || drawerState.error);
   const drawerCopy = getDrawerCopy(displayRun ?? null, drawerState.error);
   const isBusy =
-    isSubmitting || pending || (liveRun ? !isTerminalStatus(liveRun.status) : false);
+    isSubmitting ||
+    pending ||
+    (liveRun ? !isTerminalStatus(liveRun.status) : false) ||
+    Boolean(restorePendingKey) ||
+    Boolean(replayPendingRevisionId);
   const canReopenDrawer = liveRun
     ? !isTerminalStatus(liveRun.status) && !drawerPinned
     : false;
@@ -457,6 +623,21 @@ export function WorkspaceExperience({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {!hasOriginalVersionActive ? (
+              <button
+                className="button-secondary"
+                type="button"
+                disabled={isBusy}
+                onClick={() =>
+                  void restoreVersion(
+                    { target: "baseline" },
+                    `${baselineVersionLabel} version restored.`,
+                  )
+                }
+              >
+                {restorePendingKey === "baseline" ? "Restoring..." : "Restore original"}
+              </button>
+            ) : null}
             <Link
               href="/projects"
               className="button-secondary inline-flex items-center gap-2"
@@ -466,6 +647,20 @@ export function WorkspaceExperience({
             {actionSlot}
           </div>
         </header>
+
+        {actionNotice ? (
+          <div
+            className={`mb-6 rounded-[1.4rem] border px-4 py-3 text-sm leading-7 ${
+              actionNotice.tone === "success"
+                ? "border-[rgba(31,122,82,0.18)] bg-[rgba(31,122,82,0.08)] text-[var(--success)]"
+                : actionNotice.tone === "warning"
+                  ? "border-[rgba(191,90,44,0.18)] bg-[rgba(191,90,44,0.08)] text-[var(--accent-strong)]"
+                  : "border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] text-[var(--danger)]"
+            }`}
+          >
+            {actionNotice.text}
+          </div>
+        ) : null}
 
         <section className="space-y-5">
           {preview}
@@ -551,7 +746,20 @@ export function WorkspaceExperience({
             blockedReason={currentBlockedReason}
             note={displayRun?.id === latestRun?.id ? verificationNote : null}
           />
-          <RevisionTimeline revisions={revisions} />
+          <RevisionTimeline
+            currentVersionKey={currentVersionKey}
+            restorePendingKey={restorePendingKey}
+            replayPendingRevisionId={replayPendingRevisionId}
+            revisionNotices={revisionNotices}
+            revisions={revisions}
+            onReplayRevision={(revisionId) => void replayRevision(revisionId)}
+            onRestoreRevision={(revisionId) =>
+              void restoreVersion(
+                { target: "revision", revisionId },
+                "Saved version restored.",
+              )
+            }
+          />
         </section>
 
         {displayRun ? (

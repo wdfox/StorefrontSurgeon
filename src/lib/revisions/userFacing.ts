@@ -36,13 +36,42 @@ export function getUserFacingBlockedReason(
 
   if (
     technicalReason.includes("forbidden file") ||
-    technicalReason.includes("forbidden commerce logic")
+    technicalReason.includes("forbidden commerce logic") ||
+    technicalReason.includes("cart, checkout, pricing, or subscription behavior outside")
   ) {
     return {
       summary:
         "This request reached outside the part of the product page this demo is allowed to edit.",
       guidance:
         "Keep the request focused on the product page preview rather than checkout, cart, or other site logic.",
+      technical: technicalReason,
+    };
+  }
+
+  if (technicalReason.includes("subscription or recurring purchase behavior")) {
+    return {
+      summary:
+        "This update introduced subscription or recurring-purchase behavior outside the approved demo surface.",
+      guidance:
+        "Keep the request focused on product-page merchandising, copy, layout, and visual treatments.",
+      technical: technicalReason,
+    };
+  }
+
+  if (technicalReason.includes("Patch no longer applies to current revision.")) {
+    return {
+      summary: "This saved diff no longer matches the current page version.",
+      guidance:
+        "Restore a saved version directly instead of replaying an older technical diff.",
+      technical: technicalReason,
+    };
+  }
+
+  if (technicalReason.includes("Patched result did not match generated source.")) {
+    return {
+      summary: "This update couldn’t be applied reliably.",
+      guidance:
+        "Try a narrower request so the generated change stays stable.",
       technical: technicalReason,
     };
   }

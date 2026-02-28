@@ -23,6 +23,10 @@ export type PatchValidationResult =
   | { ok: true }
   | { ok: false; reason: string };
 
+export type PatchApplyResult =
+  | { ok: true; sourceAfter: string }
+  | { ok: false; reason: string };
+
 export type TestRunResult = {
   status: "passed" | "failed";
   output: string;
@@ -53,3 +57,21 @@ export type RevisionExecutionResult = {
   testOutput?: string;
   sourceAfter?: string;
 };
+
+export type RestoreRequest =
+  | { target: "baseline" }
+  | { target: "revision"; revisionId: string };
+
+export type RestoreResponse = {
+  revisionId: string;
+  status: "applied" | "failed";
+  summary: string[];
+  patchText: string;
+  testStatus?: "passed" | "failed";
+  testOutput?: string;
+  blockedReason?: string;
+};
+
+export type RevisionReplayResponse =
+  | { ok: true; patchText: string; sourceAfter: string }
+  | { ok: false; error: string };

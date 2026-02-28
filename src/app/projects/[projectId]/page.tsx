@@ -41,6 +41,19 @@ export default async function ProjectDetailPage({
   const latestSummary = Array.isArray(latestRevision?.summary)
     ? latestRevision.summary.filter((item): item is string => typeof item === "string")
     : [];
+  const hasOriginalVersionActive =
+    project.activeSource.trim() === project.baselineSource.trim();
+  const currentAppliedRevision = hasOriginalVersionActive
+    ? null
+    : project.revisions.find(
+        (revision) =>
+          revision.status === "applied" &&
+          revision.sourceAfter?.trim() === project.activeSource.trim(),
+      ) ?? null;
+  const currentVersionKey =
+    hasOriginalVersionActive
+      ? "baseline"
+      : currentAppliedRevision?.id ?? latestRevision?.id ?? "baseline";
   const canReplayVerification =
     latestRevision?.status !== "pending" && Boolean(latestRevision?.sourceAfter);
   const replayedVerification = canReplayVerification && latestRevision?.sourceAfter
@@ -70,6 +83,9 @@ export default async function ProjectDetailPage({
       projectId={project.id}
       projectName={project.name}
       projectDescription={project.description}
+      currentVersionKey={currentVersionKey}
+      hasOriginalVersionActive={hasOriginalVersionActive}
+      baselineVersionLabel="Original"
       latestRun={
         latestRevision
           ? {
@@ -89,17 +105,30 @@ export default async function ProjectDetailPage({
       displayTestStatus={displayTestStatus}
       displayTestOutput={displayTestOutput}
       verificationNote={verificationNote}
-      revisions={project.revisions.map((revision) => ({
-        id: revision.id,
-        prompt: revision.prompt,
-        status: revision.status,
-        testStatus: revision.testStatus,
-        blockedReason: revision.blockedReason,
-        summary: Array.isArray(revision.summary)
+      revisions={project.revisions.map((revision, index) => {
+        const revisionSummary = Array.isArray(revision.summary)
           ? revision.summary.filter((item): item is string => typeof item === "string")
-          : [],
-        createdAtLabel: revision.createdAt.toLocaleString(),
-      }))}
+          : [];
+        const isCurrent = revision.id === currentVersionKey;
+        const isOriginal =
+          revision.status === "applied" &&
+          revision.sourceAfter?.trim() === project.baselineSource.trim();
+
+        return {
+          id: revision.id,
+          prompt: revision.prompt,
+          status: revision.status,
+          testStatus: revision.testStatus,
+          blockedReason: revision.blockedReason,
+          summary: revisionSummary,
+          createdAtLabel: revision.createdAt.toLocaleString(),
+          isCurrent,
+          isLatest: index === 0,
+          isOriginal,
+          canRestore: revision.status === "applied" && !isCurrent,
+          canReplay: revision.status === "applied" && !isCurrent && Boolean(revision.patchText),
+        };
+      })}
       preview={<StorefrontPreview source={project.activeSource} />}
       actionSlot={<SignOutButton />}
     />
