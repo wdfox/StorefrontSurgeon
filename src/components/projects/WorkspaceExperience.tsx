@@ -35,6 +35,7 @@ type RevisionTimelineItem = {
   status: string;
   testStatus: string | null;
   blockedReason: string | null;
+  summary: string[];
   createdAtLabel: string;
 };
 
@@ -42,9 +43,6 @@ type WorkspaceExperienceProps = {
   projectId: string;
   projectName: string;
   projectDescription: string | null;
-  currentPreviewLabel: string;
-  hasAppliedChanges: boolean;
-  revisionCount: number;
   latestRun: LatestRun | null;
   displayTestStatus: string | null;
   displayTestOutput: string | null;
@@ -266,9 +264,6 @@ export function WorkspaceExperience({
   projectId,
   projectName,
   projectDescription,
-  currentPreviewLabel,
-  hasAppliedChanges,
-  revisionCount,
   latestRun,
   displayTestStatus,
   displayTestOutput,
@@ -429,10 +424,6 @@ export function WorkspaceExperience({
     displayRun?.id === latestRun?.id
       ? latestRun?.blockedReason ?? null
       : displayRun?.blockedReason ?? null;
-  const effectiveRevisionCount =
-    displayRun && displayRun.id !== latestRun?.id ? revisionCount + 1 : revisionCount;
-  const runTone = getRunTone(displayRun?.status ?? "pending");
-  const runLabel = getRunLabel(displayRun?.status ?? "pending", displayRun?.runStage);
   const drawerVisible = drawerPinned && Boolean(displayRun || drawerState.error);
   const drawerCopy = getDrawerCopy(displayRun ?? null, drawerState.error);
   const isBusy =
@@ -455,8 +446,14 @@ export function WorkspaceExperience({
               {projectName}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] sm:text-base">
-              {projectDescription}
+              Review the product page below, describe the change you want, and we’ll generate a new
+              version with built-in safety checks in the background.
             </p>
+            {projectDescription ? (
+              <p className="mt-3 text-sm leading-7 text-[var(--muted)] opacity-80">
+                {projectDescription}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -470,41 +467,13 @@ export function WorkspaceExperience({
           </div>
         </header>
 
-        <section className="panel panel-strong relative overflow-hidden rounded-[2.4rem] border border-[rgba(108,89,73,0.18)] px-4 py-4 shadow-[0_30px_80px_rgba(62,40,18,0.12)] sm:px-6 sm:py-6 lg:px-8">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,247,234,0.95),transparent_34%),radial-gradient(circle_at_top_right,rgba(198,95,47,0.12),transparent_28%)]" />
-
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div className="pill">{currentPreviewLabel}</div>
-              <div className="flex flex-wrap gap-2">
-                <div className={`pill ${runTone}`}>Update status: {displayRun ? runLabel : "Ready"}</div>
-                <div className="pill">Saved versions: {effectiveRevisionCount}</div>
-                <div className="pill">
-                  {hasAppliedChanges ? "Updated from original" : "Original version"}
-                </div>
-              </div>
-            </div>
-
-            <div className="max-w-md rounded-[1.6rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.86)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
-              Start with the page preview, describe the change you want, and review the updated
-              version once the safety checks finish in the background.
-            </div>
-          </div>
-
-          <div className="relative mt-6 rounded-[2rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,252,247,0.72)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-4">
-            {preview}
-          </div>
-
+        <section className="space-y-5">
+          {preview}
           <form
             className="panel panel-strong relative mt-5 rounded-[1.8rem] border border-[rgba(108,89,73,0.16)] p-4 shadow-[0_24px_60px_rgba(67,45,20,0.16)] sm:p-5"
             onSubmit={(event) => void submitRequest(event)}
           >
-            <div>
-              <div className="eyebrow">Describe Your Change</div>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                Describe the update you want to make to this product page.
-              </p>
-            </div>
+            <div className="eyebrow">Describe Your Change</div>
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <label className="block flex-1">
@@ -576,83 +545,23 @@ export function WorkspaceExperience({
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <section className="panel rounded-[2rem] p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="eyebrow">Latest update</div>
-                <h2 className="display mt-2 text-3xl leading-tight">Update summary</h2>
-              </div>
-              <div className={`pill ${runTone}`}>{displayRun ? runLabel : "Ready"}</div>
-            </div>
-
-            {displayRun ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[1.5rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-sm font-semibold text-[var(--foreground)]">
-                      {displayRun.createdAtLabel}
-                    </div>
-                    <div className="pill">
-                      {getRunLabel(displayRun.status, displayRun.runStage)}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm leading-7 text-[var(--foreground)]">
-                    {displayRun.prompt}
-                  </p>
-                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                    Current step: {stageLabels[displayRun.runStage].compact}
-                  </p>
-                </div>
-
-                {displayRun.summary.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {displayRun.summary.map((item) => (
-                      <div key={item} className="pill">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm leading-7 text-[var(--muted)]">
-                    A short summary of the latest update will appear here.
-                  </p>
-                )}
-
-                {blockedReasonCopy ? (
-                  <div className="rounded-[1.5rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-4 py-3">
-                    <p className="text-sm leading-7 text-[var(--danger)]">
-                      {blockedReasonCopy.summary}
-                    </p>
-                    {blockedReasonCopy.guidance ? (
-                      <p className="mt-2 text-sm leading-7 text-[var(--danger)] opacity-80">
-                        {blockedReasonCopy.guidance}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="mt-5 rounded-[1.5rem] border border-dashed border-[rgba(108,89,73,0.18)] bg-[rgba(255,251,246,0.7)] px-4 py-5 text-sm leading-7 text-[var(--muted)]">
-                No updates yet. Describe a change above to create the first saved version.
-              </div>
-            )}
-          </section>
-
           <TestStatusPanel
             status={currentTestStatus}
             output={currentTestOutput}
             blockedReason={currentBlockedReason}
             note={displayRun?.id === latestRun?.id ? verificationNote : null}
           />
-        </section>
-
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <DiffPanel
-            patchText={displayRun?.patchText ?? null}
-            summary={displayRun?.summary ?? []}
-          />
           <RevisionTimeline revisions={revisions} />
         </section>
+
+        {displayRun ? (
+          <section className="mt-6">
+            <DiffPanel
+              patchText={displayRun.patchText ?? null}
+              summary={displayRun.summary ?? []}
+            />
+          </section>
+        ) : null}
       </main>
 
       {canReopenDrawer ? (

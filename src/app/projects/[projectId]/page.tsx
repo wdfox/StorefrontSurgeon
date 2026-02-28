@@ -41,8 +41,6 @@ export default async function ProjectDetailPage({
   const latestSummary = Array.isArray(latestRevision?.summary)
     ? latestRevision.summary.filter((item): item is string => typeof item === "string")
     : [];
-  const hasAppliedChanges = project.activeSource.trim() !== project.baselineSource.trim();
-  const currentPreviewLabel = hasAppliedChanges ? "Current page" : "Original page";
   const canReplayVerification =
     latestRevision?.status !== "pending" && Boolean(latestRevision?.sourceAfter);
   const replayedVerification = canReplayVerification && latestRevision?.sourceAfter
@@ -72,9 +70,6 @@ export default async function ProjectDetailPage({
       projectId={project.id}
       projectName={project.name}
       projectDescription={project.description}
-      currentPreviewLabel={currentPreviewLabel}
-      hasAppliedChanges={hasAppliedChanges}
-      revisionCount={project.revisions.length}
       latestRun={
         latestRevision
           ? {
@@ -100,9 +95,12 @@ export default async function ProjectDetailPage({
         status: revision.status,
         testStatus: revision.testStatus,
         blockedReason: revision.blockedReason,
+        summary: Array.isArray(revision.summary)
+          ? revision.summary.filter((item): item is string => typeof item === "string")
+          : [],
         createdAtLabel: revision.createdAt.toLocaleString(),
       }))}
-      preview={<StorefrontPreview title={currentPreviewLabel} source={project.activeSource} />}
+      preview={<StorefrontPreview source={project.activeSource} />}
       actionSlot={<SignOutButton />}
     />
   );

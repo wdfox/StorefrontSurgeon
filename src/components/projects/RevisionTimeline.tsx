@@ -7,6 +7,7 @@ type RevisionTimelineProps = {
     status: string;
     testStatus: string | null;
     blockedReason: string | null;
+    summary: string[];
     createdAtLabel: string;
   }>;
 };
@@ -63,44 +64,54 @@ export function RevisionTimeline({ revisions }: RevisionTimelineProps) {
             No saved versions yet.
           </div>
         ) : (
-          revisions.map((revision) => (
-            (() => {
-              const blockedReasonCopy = getUserFacingBlockedReason(revision.blockedReason);
+          revisions.map((revision, index) => {
+            const blockedReasonCopy = getUserFacingBlockedReason(revision.blockedReason);
 
-              return (
-                <div
-                  key={revision.id}
-                  className="rounded-[1.5rem] border border-[rgba(108,89,73,0.14)] bg-[rgba(255,252,247,0.88)] p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+            return (
+              <div
+                key={revision.id}
+                className="rounded-[1.5rem] border border-[rgba(108,89,73,0.14)] bg-[rgba(255,252,247,0.88)] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {index === 0 ? <div className="pill">Latest</div> : null}
                     <div className="pill">{getStatusLabel(revision.status)}</div>
-                    <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                      {revision.createdAtLabel}
-                    </div>
                   </div>
-                  <div className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                    Requested change
+                  <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+                    {revision.createdAtLabel}
                   </div>
-                  <p className="mt-2 text-sm leading-7">{revision.prompt}</p>
-                  {blockedReasonCopy ? (
-                    <div className="mt-3 rounded-[1.2rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-3 py-3 text-sm leading-7 text-[var(--danger)]">
-                      <p>{blockedReasonCopy.summary}</p>
-                      {blockedReasonCopy.guidance ? (
-                        <p className="mt-2 text-[var(--danger)] opacity-80">
-                          {blockedReasonCopy.guidance}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {revision.testStatus ? (
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                      Check results: {getCheckLabel(revision.testStatus)}
-                    </p>
-                  ) : null}
                 </div>
-              );
-            })()
-          ))
+                <div className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Requested change
+                </div>
+                <p className="mt-2 text-sm leading-7">{revision.prompt}</p>
+                {revision.summary.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {revision.summary.map((item) => (
+                      <div key={`${revision.id}-${item}`} className="pill">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {blockedReasonCopy ? (
+                  <div className="mt-3 rounded-[1.2rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-3 py-3 text-sm leading-7 text-[var(--danger)]">
+                    <p>{blockedReasonCopy.summary}</p>
+                    {blockedReasonCopy.guidance ? (
+                      <p className="mt-2 text-[var(--danger)] opacity-80">
+                        {blockedReasonCopy.guidance}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {revision.testStatus ? (
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
+                    Check results: {getCheckLabel(revision.testStatus)}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })
         )}
       </div>
     </section>
