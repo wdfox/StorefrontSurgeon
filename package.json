@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
-    "db:migrate": "sqlite3 prisma/dev.db < prisma/migrations/0001_init/migration.sql",
+    "db:migrate": "for migration in prisma/migrations/*/migration.sql; do sqlite3 prisma/dev.db < \"$migration\"; done",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "npm run prisma:generate && npm run db:migrate && npm run db:seed"
   },

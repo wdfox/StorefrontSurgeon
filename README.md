@@ -21,6 +21,9 @@ The repo currently includes:
 - a deterministic storefront preview renderer
 - a server-side Codex adapter with live/fallback modes
 - generated-source validation, local diff generation, and test gating
+- a preview-first product-page workspace with an inline request bar
+- backend-driven run stages and a live progress drawer
+- plain-English blocked-error messaging with optional technical detail
 - a full happy-path UI for `/login`, `/projects`, and `/projects/[projectId]`
 - a blocked unsafe-change path for forbidden prompts like `cart` or `checkout`
 
@@ -53,12 +56,12 @@ The project planning/spec document is in [SPEC.md](/Users/wdfox/Documents/Docume
    - runs deterministic tests
    - promotes `activeSource` only if tests pass
    - persists the final revision status
-6. The UI refreshes and shows:
-   - latest status
-   - patch diff
-   - test output
-   - before/after preview
-   - revision timeline
+6. The UI opens on the current storefront preview, lets the user describe a change inline, then:
+   - polls backend-driven run stages
+   - updates the preview when an approved revision is applied
+   - shows safety-check output
+   - keeps diff details secondary
+   - persists the update history for review
 
 ### Main boundaries
 
@@ -105,6 +108,9 @@ The validator also enforces an approved preview-class allowlist. That constraint
 
 - `/api/projects/[projectId]/surgeries`
   - revision generation endpoint
+
+- `/api/projects/[projectId]/revisions/[revisionId]`
+  - revision polling endpoint for backend-driven run status
 
 ## Data Model
 
@@ -215,6 +221,7 @@ Current automated tests cover:
 - validator accepts and rejects the right patch shapes
 - local diff generation
 - renderer behavior for baseline vs bounded TSX revisions
+- deterministic preview checks for rendered storefront structure
 
 Run them with:
 
@@ -229,10 +236,25 @@ npm test
 The main implementation lessons from this session were:
 
 1. Structured `sourceAfter` is more reliable than model-authored patch text.
-2. The UI must render the latest candidate preview, not only the last promoted source.
-3. Verification output can become stale when test rules evolve, so replaying checks against the latest candidate improves clarity.
-4. Runtime-generated Tailwind utilities need an allowlist because SQLite-backed preview source is invisible to Tailwind's build-time scanner.
-5. The generation contract should require desktop-visible changes, otherwise a revision can succeed technically but look unchanged during the demo.
+2. The workspace works better as a preview-first experience than a tool-first console.
+3. Backend-driven run stages are worth the plumbing because fake client timers break the credibility of the demo.
+4. Verification output can become stale when test rules evolve, so replaying checks against the latest candidate improves clarity.
+5. Runtime-generated Tailwind utilities need an allowlist because SQLite-backed preview source is invisible to Tailwind's build-time scanner.
+6. Validator failures should be translated into plain-English guidance for non-technical users, with the raw reason still available on demand.
+
+### Demo workspace notes
+
+These are the repo-specific details that matter most when changing the demo:
+
+1. The seeded product-page baseline is stored in SQLite, not read live from disk.
+   If you change `src/demo/EditableProductPreview.tsx`, run `npm run db:seed` so the workspace opens on the updated baseline again.
+2. Keep `src/demo/EditableProductPreview.tsx` and `src/lib/codex/fallback.ts` visually aligned.
+   The fallback path is part of the demo story and should not drift from the seeded baseline product too far.
+3. Generated preview changes still go through the preview class allowlist in `src/lib/revisions/previewClasses.ts`.
+   If the baseline introduces new reusable preview classes, update the allowlist intentionally.
+4. The simplified workspace flow is:
+   preview -> describe change -> watch progress -> review checks/history -> open technical diff only if needed.
+5. Re-seeding the DB is the quickest way to get back to a clean first-visit demo state because it clears saved revisions for the seeded project.
 
 ### Prisma migration note
 
@@ -288,18 +310,21 @@ When using `codex login` with a ChatGPT-backed session, leave `OPENAI_CODEX_MODE
 
 1. Log in with the demo user.
 2. Open `Spring Conversion Refresh`.
-3. Run the sticky buy bar preset.
-4. Show the patch diff, test pass, and updated preview.
-5. Try a freeform prompt mentioning `cart` or `checkout`.
-6. Show the blocked revision and unchanged active preview.
+3. Start from the product preview and describe a visual change.
+4. Show the backend-driven progress drawer while the revision runs.
+5. Review the updated page, safety checks, and saved history.
+6. Try a freeform prompt mentioning `cart` or `checkout`.
+7. Show the blocked revision and unchanged active preview, then open the technical reason only if needed.
 
 ## Where To Look First
 
 - app shell: [src/app](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/app)
+- main workspace UI: [src/components/projects/WorkspaceExperience.tsx](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/components/projects/WorkspaceExperience.tsx)
 - core orchestration: [src/lib/revisions/orchestrator.ts](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/lib/revisions/orchestrator.ts)
 - Codex adapter: [src/lib/codex/adapter.ts](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/lib/codex/adapter.ts)
 - editable demo source: [src/demo/EditableProductPreview.tsx](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/demo/EditableProductPreview.tsx)
 - preview compiler and evaluator: [src/lib/revisions/source.ts](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/lib/revisions/source.ts)
+- user-facing error translation: [src/lib/revisions/userFacing.ts](/Users/wdfox/Documents/Documents%20-%20Will%E2%80%99s%20Mac%20mini/Jobs/JobSearch2026/openAICodexRole/StorefrontSurgeon/src/lib/revisions/userFacing.ts)
 
 ## Next Work
 

@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 
-import { SurgeryComposer } from "@/components/projects/SurgeryComposer";
-import { DiffPanel } from "@/components/projects/DiffPanel";
-import { RevisionTimeline } from "@/components/projects/RevisionTimeline";
-import { TestStatusPanel } from "@/components/projects/TestStatusPanel";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { StorefrontPreview } from "@/components/preview/StorefrontPreview";
+import { WorkspaceExperience } from "@/components/projects/WorkspaceExperience";
 import { prisma } from "@/lib/db";
 import { runRevisionTests } from "@/lib/revisions/tests";
+import type { RevisionRunStage, RevisionStatus } from "@/lib/revisions/types";
 import { requireSession } from "@/lib/session";
 
 type ProjectDetailPageProps = {
@@ -42,86 +41,67 @@ export default async function ProjectDetailPage({
   const latestSummary = Array.isArray(latestRevision?.summary)
     ? latestRevision.summary.filter((item): item is string => typeof item === "string")
     : [];
-  const previewSource = latestRevision?.sourceAfter ?? project.activeSource;
-  const previewTitle =
-    latestRevision?.status === "applied"
-      ? "After"
-      : latestRevision?.sourceAfter
-        ? "Latest candidate"
-        : "After";
-  const replayedVerification = latestRevision?.sourceAfter
+  const canReplayVerification =
+    latestRevision?.status !== "pending" && Boolean(latestRevision?.sourceAfter);
+  const replayedVerification = canReplayVerification && latestRevision?.sourceAfter
     ? runRevisionTests(latestRevision.sourceAfter)
     : null;
-  const displayTestStatus = latestRevision?.blockedReason
+  const displayTestStatus =
+    latestRevision?.status === "pending"
+      ? latestRevision.testStatus ?? null
+      : latestRevision?.blockedReason
     ? latestRevision.testStatus
     : replayedVerification?.status ?? latestRevision?.testStatus ?? null;
-  const displayTestOutput = latestRevision?.blockedReason
+  const displayTestOutput =
+    latestRevision?.status === "pending"
+      ? latestRevision.testOutput ?? null
+      : latestRevision?.blockedReason
     ? latestRevision.testOutput
     : replayedVerification?.output ?? latestRevision?.testOutput ?? null;
   const verificationNote =
     latestRevision?.status === "failed" &&
     latestRevision.testStatus === "failed" &&
     replayedVerification?.status === "passed"
-      ? "This revision failed under an older verification rule set. The current checks pass on the saved candidate source, but the revision was not promoted to active until you rerun it."
+      ? "This version was previously marked as needing review under an older check set. The current checks now pass, but the page will stay unchanged until you generate the update again."
       : null;
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-6 py-10">
-      <header className="mb-8">
-        <div className="eyebrow">Project workspace</div>
-        <h1 className="display mt-3 text-5xl leading-tight">{project.name}</h1>
-        <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--muted)]">
-          {project.description}
-        </p>
-      </header>
-
-      <div className="space-y-6">
-        <SurgeryComposer projectId={project.id} />
-
-        <section className="panel rounded-[1.8rem] p-6">
-          <div className="eyebrow">Latest run</div>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <div className="pill">
-              Status: {latestRevision ? latestRevision.status : "ready"}
-            </div>
-            <div className="pill">
-              Tests: {displayTestStatus ?? "not_run"}
-            </div>
-            <div className="pill">
-              Revisions: {project.revisions.length}
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-2">
-          <StorefrontPreview title="Before" source={project.baselineSource} />
-          <StorefrontPreview title={previewTitle} source={previewSource} />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <DiffPanel
-            patchText={latestRevision?.patchText ?? null}
-            summary={latestSummary}
-          />
-          <TestStatusPanel
-            status={displayTestStatus}
-            output={displayTestOutput}
-            blockedReason={latestRevision?.blockedReason ?? null}
-            note={verificationNote}
-          />
-        </section>
-
-        <RevisionTimeline
-          revisions={project.revisions.map((revision) => ({
-            id: revision.id,
-            prompt: revision.prompt,
-            status: revision.status,
-            testStatus: revision.testStatus,
-            blockedReason: revision.blockedReason,
-            createdAt: revision.createdAt,
-          }))}
-        />
-      </div>
-    </main>
+    <WorkspaceExperience
+      projectId={project.id}
+      projectName={project.name}
+      projectDescription={project.description}
+      latestRun={
+        latestRevision
+          ? {
+              id: latestRevision.id,
+              prompt: latestRevision.prompt,
+              status: latestRevision.status as RevisionStatus,
+              runStage: latestRevision.runStage as RevisionRunStage,
+              summary: latestSummary,
+              patchText: latestRevision.patchText,
+              testStatus: displayTestStatus,
+              testOutput: displayTestOutput,
+              blockedReason: latestRevision.blockedReason,
+              createdAtLabel: latestRevision.createdAt.toLocaleString(),
+            }
+          : null
+      }
+      displayTestStatus={displayTestStatus}
+      displayTestOutput={displayTestOutput}
+      verificationNote={verificationNote}
+      revisions={project.revisions.map((revision) => ({
+        id: revision.id,
+        prompt: revision.prompt,
+        status: revision.status,
+        testStatus: revision.testStatus,
+        blockedReason: revision.blockedReason,
+        summary: Array.isArray(revision.summary)
+          ? revision.summary.filter((item): item is string => typeof item === "string")
+          : [],
+        createdAtLabel: revision.createdAt.toLocaleString(),
+      }))}
+      preview={<StorefrontPreview source={project.activeSource} />}
+      actionSlot={<SignOutButton />}
+    />
   );
 }

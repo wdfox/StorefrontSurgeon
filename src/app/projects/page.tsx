@@ -21,13 +21,11 @@ export default async function ProjectsPage() {
     <main className="mx-auto min-h-screen max-w-6xl px-6 py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="eyebrow">Projects</div>
-          <h1 className="display mt-3 text-5xl leading-tight">
-            Storefront Surgeon foundation
-          </h1>
+          <div className="eyebrow">Your storefronts</div>
+          <h1 className="display mt-3 text-5xl leading-tight">Choose a page to update</h1>
           <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--muted)]">
-            One seeded workspace, one bounded surgery, one visible diff, and one
-            deterministic test gate.
+            Start from an existing product page, describe the change you want,
+            and review each saved version as you iterate.
           </p>
         </div>
         <SignOutButton />

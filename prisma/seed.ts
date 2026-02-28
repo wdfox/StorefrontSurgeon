@@ -33,8 +33,7 @@ async function main() {
     update: {
       userId: user.id,
       name: "Spring Conversion Refresh",
-      description:
-        "A seeded PDP workspace for demonstrating a constrained Codex patch workflow.",
+      description: null,
       baselineSource,
       activeSource: baselineSource,
     },
@@ -42,8 +41,7 @@ async function main() {
       id: "seed-project-storefront-surgeon",
       userId: user.id,
       name: "Spring Conversion Refresh",
-      description:
-        "A seeded PDP workspace for demonstrating a constrained Codex patch workflow.",
+      description: null,
       baselineSource,
       activeSource: baselineSource,
     },
