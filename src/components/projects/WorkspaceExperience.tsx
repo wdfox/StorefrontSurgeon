@@ -7,11 +7,9 @@ import { useRouter } from "next/navigation";
 import { surgeryPresets } from "@/demo/presets";
 import { DiffPanel } from "@/components/projects/DiffPanel";
 import { RevisionTimeline } from "@/components/projects/RevisionTimeline";
-import { TestStatusPanel } from "@/components/projects/TestStatusPanel";
 import { getUserFacingBlockedReason } from "@/lib/revisions/userFacing";
 import type {
   RevisionRunStage,
-  RevisionReplayResponse,
   RevisionSnapshot,
   RevisionStatus,
   RestoreRequest,
@@ -37,14 +35,15 @@ type RevisionTimelineItem = {
   prompt: string;
   status: string;
   testStatus: string | null;
+  testOutput: string | null;
   blockedReason: string | null;
   summary: string[];
+  verificationNote: string | null;
   createdAtLabel: string;
   isCurrent: boolean;
   isLatest: boolean;
   isOriginal: boolean;
   canRestore: boolean;
-  canReplay: boolean;
 };
 
 type WorkspaceExperienceProps = {
@@ -55,9 +54,6 @@ type WorkspaceExperienceProps = {
   hasOriginalVersionActive: boolean;
   baselineVersionLabel: string;
   latestRun: LatestRun | null;
-  displayTestStatus: string | null;
-  displayTestOutput: string | null;
-  verificationNote: string | null;
   revisions: RevisionTimelineItem[];
   preview: ReactNode;
   actionSlot?: ReactNode;
@@ -71,12 +67,6 @@ type DrawerState = {
 type ActionNotice = {
   tone: "success" | "warning" | "error";
   text: string;
-};
-
-type RevisionNotice = {
-  tone: "success" | "warning" | "error";
-  text: string;
-  technical?: string;
 };
 
 type StageCardState = "done" | "current" | "failed" | "blocked" | "waiting";
@@ -290,9 +280,6 @@ export function WorkspaceExperience({
   hasOriginalVersionActive,
   baselineVersionLabel,
   latestRun,
-  displayTestStatus,
-  displayTestOutput,
-  verificationNote,
   revisions,
   preview,
   actionSlot,
@@ -311,9 +298,7 @@ export function WorkspaceExperience({
     error: null,
   });
   const [restorePendingKey, setRestorePendingKey] = useState<string | null>(null);
-  const [replayPendingRevisionId, setReplayPendingRevisionId] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
-  const [revisionNotices, setRevisionNotices] = useState<Record<string, RevisionNotice>>({});
 
   useEffect(() => {
     if (!liveRun || isTerminalStatus(liveRun.status)) {
@@ -347,6 +332,8 @@ export function WorkspaceExperience({
 
         if (isTerminalStatus(nextRun.status)) {
           setIsSubmitting(false);
+          setPrompt("");
+          setSelectedPresetKey(undefined);
           startTransition(() => {
             router.refresh();
           });
@@ -499,101 +486,17 @@ export function WorkspaceExperience({
     }
   }
 
-  async function replayRevision(revisionId: string) {
-    setReplayPendingRevisionId(revisionId);
-    setRevisionNotices((current) => {
-      const next = { ...current };
-      delete next[revisionId];
-      return next;
-    });
-
-    try {
-      const response = await fetch(
-        `/api/projects/${projectId}/revisions/${revisionId}/replay`,
-        {
-          method: "POST",
-        },
-      );
-      const body = (await response.json().catch(() => null)) as
-        | ({ error?: string } & Partial<RevisionReplayResponse>)
-        | null;
-
-      if (!response.ok || !body) {
-        const technicalReason = body?.error ?? "We couldn’t replay that saved diff.";
-        const friendlyReason = getUserFacingBlockedReason(technicalReason);
-
-        setRevisionNotices((current) => ({
-          ...current,
-          [revisionId]: {
-            tone: response.status === 409 ? "warning" : "error",
-            text:
-              response.status === 409
-                ? "This saved diff was created for an older page state and can’t be replayed on the current version."
-                : friendlyReason?.summary ?? "We couldn’t replay that saved diff.",
-            technical: technicalReason,
-          },
-        }));
-        return;
-      }
-
-      if (!body.ok) {
-        setRevisionNotices((current) => ({
-          ...current,
-          [revisionId]: {
-            tone: "warning",
-            text: "This saved diff was created for an older page state and can’t be replayed on the current version.",
-            technical: body.error ?? "We couldn’t replay that saved diff.",
-          },
-        }));
-        return;
-      }
-
-      setRevisionNotices((current) => ({
-        ...current,
-        [revisionId]: {
-          tone: "success",
-          text: "This saved diff still applies cleanly to the current page. The active preview was left unchanged.",
-          technical: body.patchText,
-        },
-      }));
-    } catch (error) {
-      setRevisionNotices((current) => ({
-        ...current,
-        [revisionId]: {
-          tone: "error",
-          text: "We couldn’t replay that saved diff.",
-          technical: error instanceof Error ? error.message : undefined,
-        },
-      }));
-    } finally {
-      setReplayPendingRevisionId(null);
-    }
-  }
-
   const displayRun =
     liveRun && latestRun?.id === liveRun.id && latestRun.status !== "pending"
       ? latestRun
       : liveRun ?? latestRun;
-  const currentTestStatus =
-    displayRun?.id === latestRun?.id
-      ? displayTestStatus
-      : displayRun?.testStatus ?? displayTestStatus;
-  const currentTestOutput =
-    displayRun?.id === latestRun?.id
-      ? displayTestOutput
-      : displayRun?.testOutput ?? displayTestOutput;
-  const currentBlockedReason =
-    displayRun?.id === latestRun?.id
-      ? latestRun?.blockedReason ?? null
-      : displayRun?.blockedReason ?? null;
   const drawerVisible = drawerPinned && Boolean(displayRun || drawerState.error);
   const drawerCopy = getDrawerCopy(displayRun ?? null, drawerState.error);
+  const isGenerationRunning =
+    isSubmitting || pending || (liveRun ? !isTerminalStatus(liveRun.status) : false);
   const isBusy =
-    isSubmitting ||
-    pending ||
-    (liveRun ? !isTerminalStatus(liveRun.status) : false) ||
-    Boolean(restorePendingKey) ||
-    Boolean(replayPendingRevisionId);
+    isGenerationRunning ||
+    Boolean(restorePendingKey);
   const canReopenDrawer = liveRun
     ? !isTerminalStatus(liveRun.status) && !drawerPinned
     : false;
@@ -663,7 +566,30 @@ export function WorkspaceExperience({
         ) : null}
 
         <section className="space-y-5">
-          {preview}
+          <div className="relative">
+            <div
+              className={`transition-opacity duration-300 ${
+                isGenerationRunning ? "opacity-55" : "opacity-100"
+              }`}
+            >
+              {preview}
+            </div>
+            {isGenerationRunning ? (
+              <div className="absolute inset-0 z-10 grid place-items-center rounded-[2rem] bg-[rgba(244,236,222,0.46)] backdrop-blur-[2px]">
+                <div className="panel panel-strong flex flex-col items-center gap-3 rounded-[1.6rem] px-5 py-4 text-center shadow-[0_20px_55px_rgba(67,45,20,0.16)]">
+                  <span className="h-10 w-10 animate-spin rounded-full border-4 border-[rgba(191,90,44,0.2)] border-t-[var(--accent)]" />
+                  <div>
+                    <div className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent-strong)]">
+                      Updating preview
+                    </div>
+                    <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                      We&apos;re generating a new product page version.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
           <form
             className="panel panel-strong relative mt-5 rounded-[1.8rem] border border-[rgba(108,89,73,0.16)] p-4 shadow-[0_24px_60px_rgba(67,45,20,0.16)] sm:p-5"
             onSubmit={(event) => void submitRequest(event)}
@@ -674,10 +600,13 @@ export function WorkspaceExperience({
               <label className="block flex-1">
                 <span className="sr-only">Storefront change request</span>
                 <textarea
-                  className="field min-h-[3.5rem] resize-none rounded-[1.6rem] overflow-hidden py-3"
+                  className={`field min-h-[3.5rem] resize-none rounded-[1.6rem] overflow-hidden py-3 transition-opacity duration-200 ${
+                    isGenerationRunning ? "cursor-not-allowed opacity-70" : ""
+                  }`}
                   rows={1}
                   placeholder="What would you like to update?"
                   value={prompt}
+                  disabled={isGenerationRunning}
                   onChange={(event) => {
                     event.target.style.height = "0px";
                     event.target.style.height = `${event.target.scrollHeight}px`;
@@ -693,11 +622,20 @@ export function WorkspaceExperience({
               </label>
 
               <button
-                className="button-primary min-w-28"
+                className={`button-primary min-w-28 ${
+                  isGenerationRunning ? "cursor-progress" : ""
+                }`}
                 type="submit"
                 disabled={isBusy}
               >
-                {isBusy ? "Generating..." : "Generate"}
+                {isGenerationRunning ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[rgba(255,248,241,0.42)] border-t-[#fff8f1]" />
+                    <span>Generating...</span>
+                  </span>
+                ) : (
+                  "Generate"
+                )}
               </button>
             </div>
 
@@ -739,20 +677,11 @@ export function WorkspaceExperience({
           </form>
         </section>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <TestStatusPanel
-            status={currentTestStatus}
-            output={currentTestOutput}
-            blockedReason={currentBlockedReason}
-            note={displayRun?.id === latestRun?.id ? verificationNote : null}
-          />
+        <section className="mt-8">
           <RevisionTimeline
             currentVersionKey={currentVersionKey}
             restorePendingKey={restorePendingKey}
-            replayPendingRevisionId={replayPendingRevisionId}
-            revisionNotices={revisionNotices}
             revisions={revisions}
-            onReplayRevision={(revisionId) => void replayRevision(revisionId)}
             onRestoreRevision={(revisionId) =>
               void restoreVersion(
                 { target: "revision", revisionId },

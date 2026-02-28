@@ -102,9 +102,6 @@ export default async function ProjectDetailPage({
             }
           : null
       }
-      displayTestStatus={displayTestStatus}
-      displayTestOutput={displayTestOutput}
-      verificationNote={verificationNote}
       revisions={project.revisions.map((revision, index) => {
         const revisionSummary = Array.isArray(revision.summary)
           ? revision.summary.filter((item): item is string => typeof item === "string")
@@ -119,14 +116,18 @@ export default async function ProjectDetailPage({
           prompt: revision.prompt,
           status: revision.status,
           testStatus: revision.testStatus,
+          testOutput:
+            revision.id === latestRevision?.id
+              ? displayTestOutput
+              : revision.testOutput,
           blockedReason: revision.blockedReason,
           summary: revisionSummary,
+          verificationNote: revision.id === latestRevision?.id ? verificationNote : null,
           createdAtLabel: revision.createdAt.toLocaleString(),
           isCurrent,
           isLatest: index === 0,
           isOriginal,
           canRestore: revision.status === "applied" && !isCurrent,
-          canReplay: revision.status === "applied" && !isCurrent && Boolean(revision.patchText),
         };
       })}
       preview={<StorefrontPreview source={project.activeSource} />}

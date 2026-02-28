@@ -29,8 +29,11 @@ export function ProjectList({ projects }: ProjectListProps) {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">
             {project.description}
           </p>
-          <div className="mt-5 text-sm font-semibold text-[var(--accent-strong)]">
-            Open page
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+              Last updated {project.updatedAt.toLocaleDateString()}
+            </div>
+            <div className="text-sm font-semibold text-[var(--accent-strong)]">Open page</div>
           </div>
         </Link>
       ))}
