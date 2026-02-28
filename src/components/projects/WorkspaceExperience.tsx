@@ -8,6 +8,7 @@ import { surgeryPresets } from "@/demo/presets";
 import { DiffPanel } from "@/components/projects/DiffPanel";
 import { RevisionTimeline } from "@/components/projects/RevisionTimeline";
 import { TestStatusPanel } from "@/components/projects/TestStatusPanel";
+import { getUserFacingBlockedReason } from "@/lib/revisions/userFacing";
 import type {
   RevisionRunStage,
   RevisionSnapshot,
@@ -439,6 +440,10 @@ export function WorkspaceExperience({
   const canReopenDrawer = liveRun
     ? !isTerminalStatus(liveRun.status) && !drawerPinned
     : false;
+  const drawerStatusLabel = displayRun
+    ? getRunLabel(displayRun.status, displayRun.runStage)
+    : "Ready";
+  const blockedReasonCopy = getUserFacingBlockedReason(displayRun?.blockedReason);
 
   return (
     <>
@@ -613,9 +618,16 @@ export function WorkspaceExperience({
                   </p>
                 )}
 
-                {displayRun.blockedReason ? (
-                  <div className="rounded-[1.5rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-4 py-3 text-sm leading-7 text-[var(--danger)]">
-                    {displayRun.blockedReason}
+                {blockedReasonCopy ? (
+                  <div className="rounded-[1.5rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-4 py-3">
+                    <p className="text-sm leading-7 text-[var(--danger)]">
+                      {blockedReasonCopy.summary}
+                    </p>
+                    {blockedReasonCopy.guidance ? (
+                      <p className="mt-2 text-sm leading-7 text-[var(--danger)] opacity-80">
+                        {blockedReasonCopy.guidance}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -659,13 +671,18 @@ export function WorkspaceExperience({
         className={`pointer-events-none fixed inset-y-0 right-0 z-50 flex w-full justify-end px-4 py-4 transition-opacity duration-300 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
       >
         <aside
-          className={`flex h-full w-full max-w-[24rem] flex-col rounded-[2rem] border border-[rgba(108,89,73,0.16)] bg-[rgba(255,250,244,0.97)] p-5 shadow-[0_28px_80px_rgba(41,27,12,0.22)] backdrop-blur transition-transform duration-300 ${drawerVisible ? "pointer-events-auto translate-x-0" : "pointer-events-none translate-x-10"}`}
+          className={`flex h-full w-full max-w-[25rem] flex-col rounded-[2rem] border border-[rgba(108,89,73,0.16)] bg-[linear-gradient(180deg,rgba(255,252,247,0.98)_0%,rgba(252,245,236,0.98)_100%)] p-5 shadow-[0_28px_80px_rgba(41,27,12,0.22)] backdrop-blur transition-transform duration-300 ${drawerVisible ? "pointer-events-auto translate-x-0" : "pointer-events-none translate-x-10"}`}
           aria-live="polite"
         >
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="eyebrow">Update progress</div>
-              <h2 className="display mt-2 text-3xl leading-tight">{drawerCopy.title}</h2>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="eyebrow">Update progress</div>
+                <div className={`pill ${getRunTone(displayRun?.status ?? "pending")}`}>
+                  {drawerStatusLabel}
+                </div>
+              </div>
+              <h2 className="display mt-3 text-3xl leading-tight">{drawerCopy.title}</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{drawerCopy.detail}</p>
             </div>
 
@@ -690,9 +707,9 @@ export function WorkspaceExperience({
                   key={stage}
                   className={`rounded-[1.4rem] border px-4 py-4 transition-colors ${classes.panel}`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
                     <div
-                      className={`grid h-8 w-8 place-items-center rounded-full border ${classes.badge}`}
+                      className={`mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full border ${classes.badge}`}
                     >
                       {state === "current" ? (
                         <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
@@ -706,12 +723,17 @@ export function WorkspaceExperience({
                         </span>
                       )}
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold text-[var(--foreground)]">
-                        {stageLabels[stage].title}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-[var(--foreground)]">
+                          {stageLabels[stage].title}
+                        </div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                          {classes.text}
+                        </div>
                       </div>
-                      <div className="text-xs leading-6 text-[var(--muted)]">
-                        {classes.text}
+                      <div className="mt-1 text-xs leading-6 text-[var(--muted)]">
+                        {stageLabels[stage].detail}
                       </div>
                     </div>
                   </div>
@@ -720,7 +742,7 @@ export function WorkspaceExperience({
             })}
           </div>
 
-          <div className="mt-6 rounded-[1.5rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] px-4 py-4">
+          <div className="mt-6 rounded-[1.5rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
               Requested change
             </div>
@@ -730,7 +752,7 @@ export function WorkspaceExperience({
           </div>
 
           {displayRun && isTerminalStatus(displayRun.status) ? (
-            <div className="mt-6 rounded-[1.5rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] px-4 py-4">
+            <div className="mt-6 rounded-[1.5rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold text-[var(--foreground)]">Result</div>
                 <div className={`pill ${getRunTone(displayRun.status)}`}>
@@ -748,10 +770,25 @@ export function WorkspaceExperience({
                 </div>
               ) : null}
 
-              {displayRun.blockedReason ? (
-                <p className="mt-4 text-sm leading-7 text-[var(--danger)]">
-                  {displayRun.blockedReason}
-                </p>
+              {blockedReasonCopy ? (
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em] text-[var(--danger)]">
+                    View technical reason
+                  </summary>
+                  <div className="mt-3 rounded-[1.2rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-3 py-3">
+                    <p className="text-sm leading-7 text-[var(--danger)]">
+                      {blockedReasonCopy.summary}
+                    </p>
+                    {blockedReasonCopy.guidance ? (
+                      <p className="mt-2 text-sm leading-7 text-[var(--danger)] opacity-80">
+                        {blockedReasonCopy.guidance}
+                      </p>
+                    ) : null}
+                    <p className="mt-3 text-sm leading-7 text-[var(--danger)]">
+                      {blockedReasonCopy.technical}
+                    </p>
+                  </div>
+                </details>
               ) : null}
             </div>
           ) : null}

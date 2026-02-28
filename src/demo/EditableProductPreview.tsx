@@ -38,6 +38,30 @@ export default function ProductPreview() {
         #gallery-back:checked ~ #gallery-stage-back {
           display: block;
         }
+
+        #gallery-front:checked ~ #gallery-thumb-front,
+        #gallery-texture:checked ~ #gallery-thumb-texture,
+        #gallery-styled:checked ~ #gallery-thumb-styled,
+        #gallery-back:checked ~ #gallery-thumb-back {
+          background: rgba(255, 250, 244, 0.96);
+          border-color: rgba(122, 75, 41, 0.34);
+          box-shadow: 0 12px 30px rgba(88, 55, 31, 0.12);
+          transform: translateY(-2px);
+        }
+
+        #gallery-front:checked ~ #gallery-thumb-front .gallery-frame,
+        #gallery-texture:checked ~ #gallery-thumb-texture .gallery-frame,
+        #gallery-styled:checked ~ #gallery-thumb-styled .gallery-frame,
+        #gallery-back:checked ~ #gallery-thumb-back .gallery-frame {
+          box-shadow: 0 0 0 2px rgba(122, 75, 41, 0.18);
+        }
+
+        #gallery-front:checked ~ #gallery-thumb-front .gallery-label,
+        #gallery-texture:checked ~ #gallery-thumb-texture .gallery-label,
+        #gallery-styled:checked ~ #gallery-thumb-styled .gallery-label,
+        #gallery-back:checked ~ #gallery-thumb-back .gallery-label {
+          color: #4e3728;
+        }
       `}</style>
       <div className="grid gap-10 p-6 md:grid-cols-[1.05fr_0.95fr] md:p-8">
         <div className="space-y-4">
@@ -149,31 +173,32 @@ export default function ProductPreview() {
                 Best seller
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {gallery.map((image) => (
-              <label
-                key={image.key}
-                htmlFor={`gallery-${image.key}`}
-                className="cursor-pointer rounded-2xl border border-[#dbc9b5] bg-[#f5ecdf] p-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#6a5b4e]"
-              >
-                <div
-                  role="img"
-                  aria-label={image.alt}
-                  className="rounded-[1.25rem]"
-                  style={{
-                    backgroundImage: `url('${image.src}')`,
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundSize: "cover",
-                    display: "block",
-                    height: "6rem",
-                    width: "100%",
-                  }}
-                />
-                <div className="mt-3">{image.label}</div>
-              </label>
-            ))}
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {gallery.map((image) => (
+                <label
+                  id={`gallery-thumb-${image.key}`}
+                  key={image.key}
+                  htmlFor={`gallery-${image.key}`}
+                  className="cursor-pointer rounded-2xl border border-[#dbc9b5] bg-[#f5ecdf] p-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#6a5b4e] transition-all duration-200"
+                >
+                  <div
+                    role="img"
+                    aria-label={image.alt}
+                    className="gallery-frame rounded-[1.25rem]"
+                    style={{
+                      backgroundImage: `url('${image.src}')`,
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                      backgroundSize: "cover",
+                      display: "block",
+                      height: "6rem",
+                      width: "100%",
+                    }}
+                  />
+                  <div className="gallery-label mt-3">{image.label}</div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 

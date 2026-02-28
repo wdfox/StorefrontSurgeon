@@ -20,6 +20,30 @@ function buildStickyBarSource() {
         #gallery-back:checked ~ #gallery-stage-back {
           display: block;
         }
+
+        #gallery-front:checked ~ #gallery-thumb-front,
+        #gallery-texture:checked ~ #gallery-thumb-texture,
+        #gallery-styled:checked ~ #gallery-thumb-styled,
+        #gallery-back:checked ~ #gallery-thumb-back {
+          background: rgba(255, 250, 244, 0.96);
+          border-color: rgba(151, 81, 34, 0.34);
+          box-shadow: 0 12px 30px rgba(88, 55, 31, 0.12);
+          transform: translateY(-2px);
+        }
+
+        #gallery-front:checked ~ #gallery-thumb-front .gallery-frame,
+        #gallery-texture:checked ~ #gallery-thumb-texture .gallery-frame,
+        #gallery-styled:checked ~ #gallery-thumb-styled .gallery-frame,
+        #gallery-back:checked ~ #gallery-thumb-back .gallery-frame {
+          box-shadow: 0 0 0 2px rgba(151, 81, 34, 0.18);
+        }
+
+        #gallery-front:checked ~ #gallery-thumb-front .gallery-label,
+        #gallery-texture:checked ~ #gallery-thumb-texture .gallery-label,
+        #gallery-styled:checked ~ #gallery-thumb-styled .gallery-label,
+        #gallery-back:checked ~ #gallery-thumb-back .gallery-label {
+          color: #6b472f;
+        }
       \`}</style>
       <div className="grid gap-10 p-6 md:grid-cols-[1.05fr_0.95fr] md:p-8">
         <div className="space-y-4">
@@ -82,28 +106,29 @@ function buildStickyBarSource() {
                 Limited stock
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { key: "front", label: "Front", src: "/preview/coastal-linen-front.png", alt: "Front product image of the Coastal Linen Camp Shirt" },
-              { key: "texture", label: "Texture", src: "/preview/coastal-linen-detail.png", alt: "Close-up of the Coastal Linen Camp Shirt fabric" },
-              { key: "styled", label: "Styled", src: "/preview/coastal-linen-on-body-front.png", alt: "Model wearing the Coastal Linen Camp Shirt in Salt" },
-              { key: "back", label: "Back", src: "/preview/coastal-linen-on-body-back.png", alt: "Back view of a model wearing the Coastal Linen Camp Shirt" },
-            ].map((image) => (
-              <label
-                htmlFor={"gallery-" + image.key}
-                key={image.label}
-                className="cursor-pointer rounded-2xl border border-[#e5c5a5] bg-[#fff5ea] px-3 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#7f5d45]"
-              >
-                <div
-                  role="img"
-                  aria-label={image.alt}
-                  className="rounded-[1.25rem]"
-                  style={{ backgroundImage: "url('" + image.src + "')", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "cover", display: "block", height: "6rem", width: "100%" }}
-                />
-                <div className="mt-3">{image.label}</div>
-              </label>
-            ))}
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {[
+                { key: "front", label: "Front", src: "/preview/coastal-linen-front.png", alt: "Front product image of the Coastal Linen Camp Shirt" },
+                { key: "texture", label: "Texture", src: "/preview/coastal-linen-detail.png", alt: "Close-up of the Coastal Linen Camp Shirt fabric" },
+                { key: "styled", label: "Styled", src: "/preview/coastal-linen-on-body-front.png", alt: "Model wearing the Coastal Linen Camp Shirt in Salt" },
+                { key: "back", label: "Back", src: "/preview/coastal-linen-on-body-back.png", alt: "Back view of a model wearing the Coastal Linen Camp Shirt" },
+              ].map((image) => (
+                <label
+                  id={"gallery-thumb-" + image.key}
+                  htmlFor={"gallery-" + image.key}
+                  key={image.label}
+                  className="cursor-pointer rounded-2xl border border-[#e5c5a5] bg-[#fff5ea] px-3 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#7f5d45]"
+                >
+                  <div
+                    role="img"
+                    aria-label={image.alt}
+                    className="gallery-frame rounded-[1.25rem]"
+                    style={{ backgroundImage: "url('" + image.src + "')", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundSize: "cover", display: "block", height: "6rem", width: "100%" }}
+                  />
+                  <div className="gallery-label mt-3">{image.label}</div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 

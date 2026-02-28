@@ -1,3 +1,5 @@
+import { getUserFacingBlockedReason } from "@/lib/revisions/userFacing";
+
 type TestStatusPanelProps = {
   status: string | null;
   output: string | null;
@@ -11,6 +13,7 @@ export function TestStatusPanel({
   blockedReason,
   note,
 }: TestStatusPanelProps) {
+  const blockedReasonCopy = getUserFacingBlockedReason(blockedReason);
   const hasDetails = Boolean(output);
   const statusLabel =
     status === "passed"
@@ -41,10 +44,23 @@ export function TestStatusPanel({
             ? "This version needs review before it can be used."
             : "No checks have run yet."}
       </div>
-      {blockedReason ? (
-        <p className="status-danger mt-3 rounded-[1.4rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-4 py-3 text-sm leading-7">
-          {blockedReason}
-        </p>
+      {blockedReasonCopy ? (
+        <div className="mt-3 rounded-[1.4rem] border border-[rgba(162,60,50,0.18)] bg-[rgba(162,60,50,0.08)] px-4 py-3">
+          <p className="status-danger text-sm leading-7">{blockedReasonCopy.summary}</p>
+          {blockedReasonCopy.guidance ? (
+            <p className="mt-2 text-sm leading-7 text-[var(--danger)] opacity-80">
+              {blockedReasonCopy.guidance}
+            </p>
+          ) : null}
+          <details className="mt-3">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.16em] text-[var(--danger)]">
+              View technical reason
+            </summary>
+            <p className="mt-3 text-sm leading-7 text-[var(--danger)]">
+              {blockedReasonCopy.technical}
+            </p>
+          </details>
+        </div>
       ) : null}
       {note ? (
         <p className="mt-3 rounded-[1.4rem] border border-[rgba(108,89,73,0.12)] bg-[rgba(255,251,246,0.84)] px-4 py-3 text-sm leading-7 text-[var(--muted)]">
