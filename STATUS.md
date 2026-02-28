@@ -10,6 +10,7 @@ Last verified locally:
 
 - `npm run lint`
 - `npm test`
+- `npm run test:e2e`
 - `npm run build`
 
 ## What Is Done
@@ -32,13 +33,15 @@ Last verified locally:
 - implemented deterministic post-patch verification
 - persisted revision state transitions
 - surfaced patch/test/timeline information in the UI
+- added restore flows for the original baseline and prior applied revisions
+- added an orchestrator integration test for generated-update promotion/blocking
+- added a Playwright smoke test for login -> seeded project -> generation happy path
 
 ### Safety behavior
 
 - forbidden prompts can be blocked
 - forbidden file edits are rejected
 - oversized patches are rejected
-- unsupported preview class tokens are rejected
 - imports, hooks, and runtime side effects are rejected
 - failed verification does not promote `activeSource`
 
@@ -47,14 +50,12 @@ Last verified locally:
 - Returning structured `sourceAfter` is more robust than letting the model author patch syntax.
 - Failed revisions still need a visible candidate preview in the UI.
 - Verification can drift as heuristics improve, so replaying checks against the latest candidate prevents stale failure messaging.
-- Runtime-generated Tailwind classes are unsafe unless they are pre-approved and compiled into the CSS bundle.
 - The generation contract needs to force desktop-visible changes, not only mobile-only treatments.
 
 ## What Is Not Done Yet
 
 ### Product features
 
-- revert to an older revision
 - retry-on-failure repair loop
 - multiple surgeries beyond the initial sticky buy bar flow
 - richer revision summaries or explanations
@@ -65,7 +66,7 @@ Last verified locally:
 
 - AST-aware validation
 - more realistic policy checks
-- richer integration tests
+- broader multi-path integration coverage
 - sandboxed or isolated execution model
 - production-ready auth/provider setup
 - observability around generation latency, failure modes, and patch sizes
@@ -106,13 +107,13 @@ Last verified locally:
 1. Add risk metadata to each revision: patch size, validation reason, test duration.
 2. Add structured event logging around each orchestration stage.
 3. Tighten validation from text checks to config-shape or AST-level checks.
-4. Add one integration test for login -> surgery -> persisted revision.
+4. Extend the current smoke coverage to include one blocked-path or restore-path browser test.
 
 ### Demo polish upgrades
 
 1. Add visible progress states for `generating`, `validating`, `testing`, and `applied`.
 2. Add one-click “unsafe request” example for the safety demo.
-3. Add clearer UI messaging when a revision is blocked by the preview-class allowlist.
+3. Add clearer UI messaging when a revision is blocked by validation or safety policy.
 
 ## Quick Runbook
 
@@ -129,6 +130,7 @@ npm run dev
 ```bash
 npm run lint
 npm test
+npm run test:e2e
 npm run build
 ```
 

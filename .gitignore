@@ -12,9 +12,12 @@
 
 # testing
 /coverage
+.codex-e2e-empty/
+output/playwright/
 
 # next.js
 /.next/
+/.next.pre-dev-debug-*/
 /out/
 
 # production

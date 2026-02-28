@@ -11,29 +11,6 @@ export function getUserFacingBlockedReason(
     return null;
   }
 
-  if (technicalReason.includes("unsupported utility classes")) {
-    return {
-      summary:
-        "This update used styling patterns that aren’t approved for this demo yet.",
-      guidance:
-        "Try reusing the existing visual styles instead of introducing new styling tokens or layout utilities.",
-      technical: technicalReason,
-    };
-  }
-
-  if (
-    technicalReason.includes("literal className strings") ||
-    technicalReason.includes("approved preview allowlist")
-  ) {
-    return {
-      summary:
-        "This update changed the page styling in a way this demo can’t safely apply yet.",
-      guidance:
-        "Try a simpler visual request that builds on the styles already used in the page.",
-      technical: technicalReason,
-    };
-  }
-
   if (
     technicalReason.includes("forbidden file") ||
     technicalReason.includes("forbidden commerce logic") ||

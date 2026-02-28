@@ -91,7 +91,7 @@ The project planning/spec document is in [SPEC.md](/Users/wdfox/Documents/Docume
 
 The current implementation gives Codex one bounded TSX file to edit: `src/demo/EditableProductPreview.tsx`. The app validates the generated source, computes the diff locally, and blocks changes to any other file or protected logic.
 
-The validator also enforces an approved preview-class allowlist. That constraint is intentional: preview source is stored in SQLite and evaluated at runtime, so arbitrary Tailwind classes would not exist in the compiled CSS bundle.
+The validator keeps the editable preview bounded to one self-contained TSX component and blocks changes that introduce imports, hooks, side effects, forbidden commerce behavior, or oversized patches.
 
 ## Routes
 
@@ -193,6 +193,7 @@ Open [http://localhost:3000](http://localhost:3000).
 npm run dev
 npm run lint
 npm test
+npm run test:e2e
 npm run build
 npm run demo:reset
 npm run prisma:generate
@@ -229,15 +230,16 @@ Used when either:
 
 Current automated tests cover:
 
-- validator accepts and rejects the right patch shapes
-- local diff generation
-- renderer behavior for baseline vs bounded TSX revisions
-- deterministic preview checks for rendered storefront structure
+- unit tests for validator, patcher, renderer, user-facing error copy, and revision timeline behavior
+- an integration test around the revision orchestrator that proves generated code is validated, replayed as a patch, checked, and only then promoted
+- a Playwright smoke test that logs in, opens the seeded project, runs the main preset workflow, and verifies the updated preview reaches a ready state
+- deterministic preview checks for rendered storefront structure and safety gates around generated source
 
 Run them with:
 
 ```bash
 npm test
+npm run test:e2e
 ```
 
 ## Implementation Notes
@@ -250,8 +252,7 @@ The main implementation lessons from this session were:
 2. The workspace works better as a preview-first experience than a tool-first console.
 3. Backend-driven run stages are worth the plumbing because fake client timers break the credibility of the demo.
 4. Verification output can become stale when test rules evolve, so replaying checks against the latest candidate improves clarity.
-5. Runtime-generated Tailwind utilities need an allowlist because SQLite-backed preview source is invisible to Tailwind's build-time scanner.
-6. Validator failures should be translated into plain-English guidance for non-technical users, with the raw reason still available on demand.
+5. Validator failures should be translated into plain-English guidance for non-technical users, with the raw reason still available on demand.
 
 ### Demo workspace notes
 
@@ -261,8 +262,8 @@ These are the repo-specific details that matter most when changing the demo:
    If you change `src/demo/EditableProductPreview.tsx`, run `npm run db:seed` so the workspace opens on the updated baseline again.
 2. Keep `src/demo/EditableProductPreview.tsx` and `src/lib/codex/fallback.ts` visually aligned.
    The fallback path is part of the demo story and should not drift from the seeded baseline product too far.
-3. Generated preview changes still go through the preview class allowlist in `src/lib/revisions/previewClasses.ts`.
-   If the baseline introduces new reusable preview classes, update the allowlist intentionally.
+3. Generated preview changes still go through the bounded source validator in `src/lib/revisions/validator.ts`.
+   Keep requests focused on presentational product-page changes rather than new logic, imports, or broader app behavior.
 4. The simplified workspace flow is:
    preview -> describe change -> watch progress -> review checks/history -> open technical diff only if needed.
 5. Re-seeding the DB is the quickest way to get back to a clean first-visit demo state because it clears saved revisions for the seeded project.
