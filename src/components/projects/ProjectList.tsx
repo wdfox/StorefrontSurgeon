@@ -27,7 +27,8 @@ export function ProjectList({ projects }: ProjectListProps) {
             <div className="pill">{project.revisionCount} saved versions</div>
           </div>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-            {project.description}
+            {project.description ??
+              "Start from the seeded product page and review saved versions as you iterate."}
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">

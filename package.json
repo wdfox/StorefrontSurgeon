@@ -1,6 +1,7 @@
 {
   "name": "storefront-surgeon",
   "version": "0.1.0",
+  "description": "A constrained storefront-editing demo for the OpenAI Codex take-home.",
   "private": true,
   "scripts": {
     "dev": "next dev",

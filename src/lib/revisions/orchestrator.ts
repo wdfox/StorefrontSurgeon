@@ -20,10 +20,52 @@ import {
   validateRequestedScope,
 } from "@/lib/revisions/validator";
 
+const REQUEST_SCOPE_BLOCK_SUMMARY = [
+  "Blocked a request that reached beyond the approved product-page demo surface.",
+];
+const PATCH_MISMATCH_REASON = "Patched result did not match generated source.";
+
 function sanitizeSummary(summary: unknown): string[] {
   return Array.isArray(summary)
     ? summary.filter((item): item is string => typeof item === "string")
     : [];
+}
+
+async function blockRevision({
+  revisionId,
+  runStage,
+  reason,
+  summary = [],
+  patchText = "",
+  sourceAfter,
+}: {
+  revisionId: string;
+  runStage: RevisionRunStage;
+  reason: string;
+  summary?: string[];
+  patchText?: string;
+  sourceAfter?: string;
+}): Promise<RevisionExecutionResult> {
+  await prisma.revision.update({
+    where: { id: revisionId },
+    data: {
+      status: "blocked",
+      runStage,
+      summary,
+      patchText,
+      sourceAfter,
+      blockedReason: reason,
+    },
+  });
+
+  return {
+    revisionId,
+    status: "blocked",
+    runStage,
+    summary,
+    patchText,
+    blockedReason: reason,
+  };
 }
 
 export async function createPendingRevision({
@@ -114,6 +156,52 @@ async function failRevision({
   };
 }
 
+async function failRestoreRevision({
+  projectId,
+  prompt,
+  summary,
+  patchText,
+  sourceBefore,
+  sourceAfter,
+  runStage,
+  blockedReason,
+  testOutput,
+}: {
+  projectId: string;
+  prompt: string;
+  summary: string[];
+  patchText: string;
+  sourceBefore: string;
+  sourceAfter: string;
+  runStage: RevisionRunStage;
+  blockedReason?: string;
+  testOutput: string;
+}): Promise<RestoreResponse> {
+  const revision = await createRestoreRevision({
+    projectId,
+    prompt,
+    summary,
+    patchText,
+    sourceBefore,
+    sourceAfter,
+    status: "failed",
+    runStage,
+    blockedReason,
+    testStatus: "failed",
+    testOutput,
+  });
+
+  return {
+    revisionId: revision.id,
+    status: "failed",
+    summary,
+    patchText,
+    blockedReason,
+    testStatus: "failed",
+    testOutput,
+  };
+}
+
 function buildRestoreRevisionCopy({
   target,
   createdAtLabel,
@@ -201,28 +289,12 @@ export async function executeRevision({
     if (!requestValidation.ok) {
       currentStage = "validating";
 
-      await prisma.revision.update({
-        where: { id: revisionId },
-        data: {
-          status: "blocked",
-          runStage: currentStage,
-          summary: [
-            "Blocked a request that reached beyond the approved product-page demo surface.",
-          ],
-          blockedReason: requestValidation.reason,
-        },
-      });
-
-      return {
+      return blockRevision({
         revisionId,
-        status: "blocked",
         runStage: currentStage,
-        summary: [
-          "Blocked a request that reached beyond the approved product-page demo surface.",
-        ],
-        patchText: "",
-        blockedReason: requestValidation.reason,
-      };
+        reason: requestValidation.reason,
+        summary: REQUEST_SCOPE_BLOCK_SUMMARY,
+      });
     }
 
     let patchResponse;
@@ -250,51 +322,27 @@ export async function executeRevision({
     });
 
     if (!sourceValidation.ok) {
-      await prisma.revision.update({
-        where: { id: revisionId },
-        data: {
-          status: "blocked",
-          runStage: currentStage,
-          summary,
-          patchText,
-          sourceAfter: patchResponse.sourceAfter,
-          blockedReason: sourceValidation.reason,
-        },
-      });
-
-      return {
+      return blockRevision({
         revisionId,
-        status: "blocked",
         runStage: currentStage,
+        reason: sourceValidation.reason,
         summary,
         patchText,
-        blockedReason: sourceValidation.reason,
-      };
+        sourceAfter: patchResponse.sourceAfter,
+      });
     }
 
     const patchValidation = validatePatchText(patchText);
 
     if (!patchValidation.ok) {
-      await prisma.revision.update({
-        where: { id: revisionId },
-        data: {
-          status: "blocked",
-          runStage: currentStage,
-          summary,
-          patchText,
-          sourceAfter: patchResponse.sourceAfter,
-          blockedReason: patchValidation.reason,
-        },
-      });
-
-      return {
+      return blockRevision({
         revisionId,
-        status: "blocked",
         runStage: currentStage,
+        reason: patchValidation.reason,
         summary,
         patchText,
-        blockedReason: patchValidation.reason,
-      };
+        sourceAfter: patchResponse.sourceAfter,
+      });
     }
 
     const applyResult = applyPatchToSource(currentSource, patchText);
@@ -314,7 +362,7 @@ export async function executeRevision({
       return failRevision({
         revisionId,
         runStage: currentStage,
-        reason: "Patched result did not match generated source.",
+        reason: PATCH_MISMATCH_REASON,
         summary,
         patchText,
         sourceAfter: patchResponse.sourceAfter,
@@ -457,110 +505,62 @@ export async function restoreProjectRevision({
   const patchValidation = validatePatchText(patchText);
 
   if (!patchValidation.ok) {
-    const revision = await createRestoreRevision({
+    return failRestoreRevision({
       projectId,
       prompt,
       summary,
       patchText,
       sourceBefore: project.activeSource,
       sourceAfter: targetSource,
-      status: "failed",
       runStage: "validating",
       blockedReason: patchValidation.reason,
-      testStatus: "failed",
       testOutput: patchValidation.reason,
     });
-
-    return {
-      revisionId: revision.id,
-      status: "failed",
-      summary,
-      patchText,
-      blockedReason: patchValidation.reason,
-      testStatus: "failed",
-      testOutput: patchValidation.reason,
-    };
   }
 
   const applyResult = applyPatchToSource(project.activeSource, patchText);
 
   if (!applyResult.ok) {
-    const revision = await createRestoreRevision({
+    return failRestoreRevision({
       projectId,
       prompt,
       summary,
       patchText,
       sourceBefore: project.activeSource,
       sourceAfter: targetSource,
-      status: "failed",
       runStage: "validating",
       blockedReason: applyResult.reason,
-      testStatus: "failed",
       testOutput: applyResult.reason,
     });
-
-    return {
-      revisionId: revision.id,
-      status: "failed",
-      summary,
-      patchText,
-      blockedReason: applyResult.reason,
-      testStatus: "failed",
-      testOutput: applyResult.reason,
-    };
   }
 
   if (applyResult.sourceAfter !== targetSource) {
-    const reason = "Patched result did not match generated source.";
-    const revision = await createRestoreRevision({
+    return failRestoreRevision({
       projectId,
       prompt,
       summary,
       patchText,
       sourceBefore: project.activeSource,
       sourceAfter: targetSource,
-      status: "failed",
       runStage: "validating",
-      blockedReason: reason,
-      testStatus: "failed",
-      testOutput: reason,
+      blockedReason: PATCH_MISMATCH_REASON,
+      testOutput: PATCH_MISMATCH_REASON,
     });
-
-    return {
-      revisionId: revision.id,
-      status: "failed",
-      summary,
-      patchText,
-      blockedReason: reason,
-      testStatus: "failed",
-      testOutput: reason,
-    };
   }
 
   const testResult = runRevisionTests(applyResult.sourceAfter);
 
   if (testResult.status === "failed") {
-    const revision = await createRestoreRevision({
+    return failRestoreRevision({
       projectId,
       prompt,
       summary,
       patchText,
       sourceBefore: project.activeSource,
       sourceAfter: applyResult.sourceAfter,
-      status: "failed",
       runStage: "testing",
-      testStatus: "failed",
       testOutput: testResult.output,
     });
-
-    return {
-      revisionId: revision.id,
-      status: "failed",
-      summary,
-      patchText,
-      testStatus: "failed",
-      testOutput: testResult.output,
-    };
   }
 
   const [revision] = await prisma.$transaction([
